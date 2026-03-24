@@ -1,0 +1,508 @@
+// =============================================================================
+// VARIÁVEIS GLOBAIS
+// =============================================================================
+
+let productsData = [];
+let currentProdutoId = null;
+let categoriasChart = null;
+let topProdutosChart = null;
+
+const API_BASE = 'http://localhost:5000/api';
+
+// =============================================================================
+// INICIALIZAÇÃO
+// =============================================================================
+
+document.addEventListener('DOMContentLoaded', function () {
+    carregarDados();
+    configurarEventos();
+    
+    // Recarregar dados a cada 5 segundos
+    setInterval(carregarDados, 5000);
+});
+
+// =============================================================================
+// FUNÇÕES DE NAVEGAÇÃO
+// =============================================================================
+
+function showSection(section) {
+    // Ocultar todas as seções
+    document.querySelectorAll('.section').forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Mostrar seção selecionada
+    const sectionId = section + '-section';
+    document.getElementById(sectionId).style.display = 'block';
+    
+    // Carregar dados específicos
+    if (section === 'dashboard') {
+        atualizarDashboard();
+    } else if (section === 'produtos') {
+        atualizarTabelaProdutos();
+    } else if (section === 'relatorios') {
+        atualizarRelatorios();
+    }
+}
+
+// =============================================================================
+// CARREGAR DADOS
+// =============================================================================
+
+function carregarDados() {
+    Promise.all([
+        fetch(`${API_BASE}/produtos`).then(r => r.json()),
+        fetch(`${API_BASE}/relatorios/resumo`).then(r => r.json())
+    ])
+    .then(([produtos, resumo]) => {
+        productsData = produtos;
+        atualizarKPIs(resumo);
+        atualizarEstoqueBaixo();
+    })
+    .catch(error => mostrarErro('Erro ao carregar dados', error));
+}
+
+function atualizarKPIs(resumo) {
+    document.getElementById('kpi-total-produtos').textContent = resumo.total_produtos;
+    document.getElementById('kpi-quantidade').textContent = resumo.total_quantidades;
+    document.getElementById('kpi-valor').textContent = 'R$ ' + formatarMoeda(resumo.valor_total);
+    document.getElementById('kpi-baixo').textContent = resumo.produtos_estoque_baixo;
+}
+
+function atualizarEstoqueBaixo() {
+    fetch(`${API_BASE}/relatorios/estoque-baixo`)
+        .then(r => r.json())
+        .then(datos => {
+            const tbody = document.getElementById('estoque-baixo-table');
+            
+            if (datos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-success">✓ Todos os produtos estão acima do estoque mínimo!</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = datos.map(prod => `
+                <tr>
+                    <td><strong>${prod.id}</strong></td>
+                    <td>${prod.nome}</td>
+                    <td><span class="badge bg-secondary">${prod.categoria}</span></td>
+                    <td>${prod.quantidade}</td>
+                    <td>${prod.minimo}</td>
+                    <td><strong class="text-danger">-${prod.faltam}</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="abrirMovimentacao('${prod.id}')">
+                            <i class="fas fa-arrow-up"></i> Entrada
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => console.error('Erro ao carregar estoque baixo:', error));
+}
+
+// =============================================================================
+// DASHBOARD
+// =============================================================================
+
+function atualizarDashboard() {
+    atualizarGraficoCategorias();
+    atualizarGraficoTopProdutos();
+}
+
+function atualizarGraficoCategorias() {
+    fetch(`${API_BASE}/relatorios/por-categoria`)
+        .then(r => r.json())
+        .then(categorias => {
+            const labels = categorias.map(c => c.categoria);
+            const valores = categorias.map(c => c.valor_total);
+            const cores = gerarCores(categorias.length);
+            
+            if (categoriasChart) {
+                categoriasChart.destroy();
+            }
+            
+            const ctx = document.getElementById('categoriasChart').getContext('2d');
+            categoriasChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: cores,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Erro ao carregar categorias:', error));
+}
+
+function atualizarGraficoTopProdutos() {
+    fetch(`${API_BASE}/relatorios/top-produtos`)
+        .then(r => r.json())
+        .then(produtos => {
+            const labels = produtos.map(p => p.nome.substring(0, 15));
+            const valores = produtos.map(p => p.valor_total);
+            
+            if (topProdutosChart) {
+                topProdutosChart.destroy();
+            }
+            
+            const ctx = document.getElementById('topProdutosChart').getContext('2d');
+            topProdutosChart = new Chart(ctx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Valor Total (R$)',
+                        data: valores,
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { font: { size: 12 } }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Erro ao carregar top produtos:', error));
+}
+
+// =============================================================================
+// PRODUTOS
+// =============================================================================
+
+function atualizarTabelaProdutos() {
+    const tbody = document.getElementById('produtos-table');
+    
+    if (productsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Nenhum produto cadastrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = productsData.map(prod => `
+        <tr>
+            <td><strong>${prod.id}</strong></td>
+            <td>${prod.nome}</td>
+            <td><span class="badge bg-secondary">${prod.categoria}</span></td>
+            <td>R$ ${formatarMoeda(prod.preco)}</td>
+            <td>${prod.quantidade}</td>
+            <td>R$ ${formatarMoeda(prod.valor_total)}</td>
+            <td>
+                ${prod.abaixo_minimo 
+                    ? '<span class="badge badge-baixo">BAIXO</span>' 
+                    : '<span class="badge badge-ok">OK</span>'
+                }
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-info" onclick="editarProduto('${prod.id}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-success" onclick="abrirMovimentacao('${prod.id}')" title="Movimentar">
+                        <i class="fas fa-arrows-alt-v"></i>
+                    </button>
+                    <button class="btn btn-danger" onclick="deletarProduto('${prod.id}')" title="Deletar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function novoFormulario() {
+    currentProdutoId = null;
+    document.getElementById('formProduto').reset();
+    document.getElementById('modalProdutoTitle').textContent = 'Novo Produto';
+    document.getElementById('prodId').disabled = false;
+}
+
+function editarProduto(id) {
+    const produto = productsData.find(p => p.id === id);
+    
+    if (!produto) return;
+    
+    currentProdutoId = id;
+    document.getElementById('modProdutoTitle').textContent = 'Editar Produto';
+    document.getElementById('prodId').value = produto.id;
+    document.getElementById('prodNome').value = produto.nome;
+    document.getElementById('prodCategoria').value = produto.categoria;
+    document.getElementById('prodPreco').value = produto.preco;
+    document.getElementById('prodQuantidade').value = produto.quantidade;
+    document.getElementById('prodMinimo').value = produto.minimo;
+    document.getElementById('prodLocalizacao').value = produto.localizacao;
+    document.getElementById('prodId').disabled = true;
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalProduto'));
+    modal.show();
+}
+
+function salvarProduto() {
+    const id = document.getElementById('prodId').value.trim();
+    const nome = document.getElementById('prodNome').value.trim();
+    const categoria = document.getElementById('prodCategoria').value.trim();
+    const preco = document.getElementById('prodPreco').value;
+    const quantidade = document.getElementById('prodQuantidade').value;
+    const minimo = document.getElementById('prodMinimo').value;
+    const localizacao = document.getElementById('prodLocalizacao').value.trim();
+    
+    if (!id || !nome || !categoria || !preco || !quantidade || minimo === '') {
+        mostrarAlerta('Todos os campos obrigatórios devem ser preenchidos!', 'warning');
+        return;
+    }
+    
+    const dados = { id, nome, categoria, preco, quantidade, minimo, localizacao };
+    const url = currentProdutoId 
+        ? `${API_BASE}/produtos/${currentProdutoId}` 
+        : `${API_BASE}/produtos`;
+    const metodo = currentProdutoId ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+    })
+    .then(r => r.json())
+    .then(resposta => {
+        mostrarAlerta('Produto ' + (currentProdutoId ? 'atualizado' : 'criado') + ' com sucesso!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
+        carregarDados();
+        atualizarTabelaProdutos();
+    })
+    .catch(error => mostrarErro('Erro ao salvar produto', error));
+}
+
+function deletarProduto(id) {
+    if (!confirm('Deseja realmente deletar este produto?')) return;
+    
+    fetch(`${API_BASE}/produtos/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(resposta => {
+            mostrarAlerta('Produto deletado com sucesso!', 'success');
+            carregarDados();
+            atualizarTabelaProdutos();
+        })
+        .catch(error => mostrarErro('Erro ao deletar produto', error));
+}
+
+// =============================================================================
+// MOVIMENTAÇÕES
+// =============================================================================
+
+function abrirMovimentacao(id) {
+    currentProdutoId = id;
+    document.getElementById('tipoMovimentacao').value = 'entrada';
+    document.getElementById('movQuantidade').value = '';
+    atualizarLabelMovimentacao();
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalMovimentacao'));
+    modal.show();
+}
+
+function atualizarLabelMovimentacao() {
+    const tipo = document.getElementById('tipoMovimentacao').value;
+    document.getElementById('modalMovimentacaoTitle').textContent = 
+        tipo === 'entrada' ? 'Entrada de Estoque' : 'Saída de Estoque';
+}
+
+function salvarMovimentacao() {
+    const tipo = document.getElementById('tipoMovimentacao').value;
+    const quantidade = parseInt(document.getElementById('movQuantidade').value);
+    
+    if (!quantidade || quantidade <= 0) {
+        mostrarAlerta('Quantidade deve ser maior que zero!', 'warning');
+        return;
+    }
+    
+    const endpoint = tipo === 'entrada' ? 'entrada' : 'saida';
+    const dados = { id: currentProdutoId, quantidade };
+    
+    fetch(`${API_BASE}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+    })
+    .then(r => r.json())
+    .then(resposta => {
+        mostrarAlerta(resposta.mensagem || 'Movimentação realizada com sucesso!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalMovimentacao')).hide();
+        carregarDados();
+        atualizarTabelaProdutos();
+    })
+    .catch(error => mostrarErro('Erro ao realizar movimentação', error));
+}
+
+// =============================================================================
+// RELATÓRIOS
+// =============================================================================
+
+function atualizarRelatorios() {
+    atualizarRelatorioCategorias();
+    atualizarRelatorioTopProdutos();
+}
+
+function atualizarRelatorioCategorias() {
+    fetch(`${API_BASE}/relatorios/por-categoria`)
+        .then(r => r.json())
+        .then(categorias => {
+            const tbody = document.getElementById('relatorio-categoria-table');
+            tbody.innerHTML = categorias.map(cat => `
+                <tr>
+                    <td><strong>${cat.categoria}</strong></td>
+                    <td>${cat.produtos}</td>
+                    <td>${cat.quantidade}</td>
+                    <td>R$ ${formatarMoeda(cat.valor_total)}</td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => console.error('Erro ao carregar categoria:', error));
+}
+
+function atualizarRelatorioTopProdutos() {
+    fetch(`${API_BASE}/relatorios/top-produtos`)
+        .then(r => r.json())
+        .then(produtos => {
+            const tbody = document.getElementById('relatorio-top-table');
+            tbody.innerHTML = produtos.map(prod => `
+                <tr>
+                    <td>${prod.id}</td>
+                    <td>${prod.nome}</td>
+                    <td>${prod.quantidade}</td>
+                    <td>R$ ${formatarMoeda(prod.preco)}</td>
+                    <td>R$ ${formatarMoeda(prod.valor_total)}</td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => console.error('Erro ao carregar top produtos:', error));
+}
+
+// =============================================================================
+// FUNÇÕES AUXILIARES
+// =============================================================================
+
+function configurarEventos() {
+    // Buscar produtos
+    document.getElementById('searchProduto').addEventListener('keyup', function (e) {
+        const termo = e.target.value.toLowerCase();
+        const tbody = document.getElementById('produtos-table');
+        
+        if (!termo) {
+            atualizarTabelaProdutos();
+            return;
+        }
+        
+        const filtrados = productsData.filter(p => 
+            p.id.toLowerCase().includes(termo) ||
+            p.nome.toLowerCase().includes(termo) ||
+            p.categoria.toLowerCase().includes(termo)
+        );
+        
+        tbody.innerHTML = filtrados.map(prod => `
+            <tr>
+                <td><strong>${prod.id}</strong></td>
+                <td>${prod.nome}</td>
+                <td><span class="badge bg-secondary">${prod.categoria}</span></td>
+                <td>R$ ${formatarMoeda(prod.preco)}</td>
+                <td>${prod.quantidade}</td>
+                <td>R$ ${formatarMoeda(prod.valor_total)}</td>
+                <td>
+                    ${prod.abaixo_minimo 
+                        ? '<span class="badge badge-baixo">BAIXO</span>' 
+                        : '<span class="badge badge-ok">OK</span>'
+                    }
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-info" onclick="editarProduto('${prod.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-success" onclick="abrirMovimentacao('${prod.id}')" title="Movimentar">
+                            <i class="fas fa-arrows-alt-v"></i>
+                        </button>
+                        <button class="btn btn-danger" onclick="deletarProduto('${prod.id}')" title="Deletar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    });
+    
+    // Modal novo produto
+    document.getElementById('modalProduto').addEventListener('show.bs.modal', function () {
+        if (!currentProdutoId) {
+            novoFormulario();
+        }
+    });
+}
+
+function gerarCores(quantidade) {
+    const cores = [
+        '#0d6efd', '#198754', '#dc3545', '#ffc107', '#0dcaf0',
+        '#6f42c1', '#e83e8c', '#fd7e14', '#20c997', '#6c757d'
+    ];
+    
+    const resultado = [];
+    for (let i = 0; i < quantidade; i++) {
+        resultado.push(cores[i % cores.length]);
+    }
+    return resultado;
+}
+
+function formatarMoeda(valor) {
+    return parseFloat(valor).toFixed(2).replace('.', ',');
+}
+
+function mostrarAlerta(mensagem, tipo = 'info') {
+    const alertaHtml = `
+        <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+            ${mensagem}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    const container = document.createElement('div');
+    container.innerHTML = alertaHtml;
+    document.querySelector('.container-fluid').insertBefore(
+        container.firstElementChild, 
+        document.querySelector('.container-fluid').firstElementChild
+    );
+    
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) alert.remove();
+    }, 5000);
+}
+
+function mostrarErro(mensagem, error) {
+    console.error(mensagem, error);
+    mostrarAlerta(mensagem + ': ' + error.message, 'danger');
+}
+
+// Autenticar e carregar dados iniciais
+window.addEventListener('load', function () {
+    showSection('dashboard');
+});
