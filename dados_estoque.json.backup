@@ -1,0 +1,42 @@
+{
+    "100": {
+        "id_produto": "100",
+        "nome": "MOUSE COM FIO",
+        "categoria": "ELETRONICO",
+        "preco": 79.0,
+        "quantidade": 8,
+        "minimo": 2,
+        "localizacao": "N/",
+        "data_criacao": "20/03/2026 15:41:30"
+    },
+    "101": {
+        "id_produto": "101",
+        "nome": "MOUSE SEM FIO",
+        "categoria": "ELETRONICO",
+        "preco": 89.0,
+        "quantidade": 3,
+        "minimo": 2,
+        "localizacao": "N/",
+        "data_criacao": "20/03/2026 15:49:39"
+    },
+    "200": {
+        "id_produto": "200",
+        "nome": "TECLADO COM FIO",
+        "categoria": "ELETRONICO",
+        "preco": 120.0,
+        "quantidade": 5,
+        "minimo": 2,
+        "localizacao": "N/",
+        "data_criacao": "20/03/2026 15:54:53"
+    },
+    "201": {
+        "id_produto": "201",
+        "nome": "KIT TECLADO/MOUSE SEM FIO",
+        "categoria": "ELETRONICO",
+        "preco": 139.0,
+        "quantidade": 4,
+        "minimo": 2,
+        "localizacao": "N?",
+        "data_criacao": "20/03/2026 15:57:31"
+    }
+}

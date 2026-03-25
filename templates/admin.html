@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - Sistema de Gestão de Estoque</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-primary navbar-expand-lg sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                <i class="fas fa-boxes"></i> Sistema de Gestão de Estoque
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-shield-alt text-primary"></i> Administração de Usuários
+                </h1>
+                <p class="text-muted">Gerencie usuários e permissões do sistema</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Formulário para adicionar usuário -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user-plus"></i> Adicionar Novo Usuário
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="form-adicionar-usuario">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nome de Usuário</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Senha</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Tipo de Conta</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="user">Usuário Normal</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Adicionar Usuário
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de usuários -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-users"></i> Usuários Cadastrados
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="lista-usuarios">
+                            <!-- Usuários serão carregados aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação para deletar -->
+    <div class="modal fade" id="modal-confirmar-delete" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja remover o usuário <strong id="usuario-nome"></strong>?</p>
+                    <p class="text-danger small">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirmar-delete">
+                        <i class="fas fa-trash"></i> Remover
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let usuarios = [];
+        let usuarioParaDeletar = null;
+
+        // Carregar usuários
+        async function carregarUsuarios() {
+            try {
+                const response = await fetch('/api/users');
+                if (response.ok) {
+                    usuarios = await response.json();
+                    exibirUsuarios();
+                } else {
+                    alert('Erro ao carregar usuários');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar usuários');
+            }
+        }
+
+        // Exibir usuários na lista
+        function exibirUsuarios() {
+            const lista = document.getElementById('lista-usuarios');
+            lista.innerHTML = '';
+
+            if (usuarios.length === 0) {
+                lista.innerHTML = '<p class="text-muted">Nenhum usuário cadastrado.</p>';
+                return;
+            }
+
+            usuarios.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.innerHTML = `
+                    <strong>${escapeHtml(user.username)}</strong>
+                    <br>
+                    <small class="text-muted">
+                        ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
+                        | Criado em: ${user.data_criacao}
+                    </small>
+                `;
+                
+                const btnDiv = document.createElement('div');
+                if (user.username !== 'admin') { // Não permitir deletar o admin principal
+                    const btnDelete = document.createElement('button');
+                    btnDelete.className = 'btn btn-sm btn-outline-danger';
+                    btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                    btnDelete.onclick = () => confirmarDelete(user);
+                    btnDiv.appendChild(btnDelete);
+                }
+                
+                userDiv.appendChild(infoDiv);
+                userDiv.appendChild(btnDiv);
+                lista.appendChild(userDiv);
+            });
+        }
+
+        // Função para escapar HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Adicionar usuário
+        document.getElementById('form-adicionar-usuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const dados = {
+                username: formData.get('username'),
+                password: formData.get('password'),
+                role: formData.get('role')
+            };
+
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Usuário criado com sucesso!');
+                    e.target.reset();
+                    carregarUsuarios();
+                } else {
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao criar usuário');
+            }
+        });
+
+        // Confirmar delete
+        function confirmarDelete(user) {
+            usuarioParaDeletar = user;
+            document.getElementById('usuario-nome').textContent = user.username;
+            new bootstrap.Modal(document.getElementById('modal-confirmar-delete')).show();
+        }
+
+        // Deletar usuário
+        document.getElementById('btn-confirmar-delete').addEventListener('click', async () => {
+            if (!usuarioParaDeletar) return;
+
+            try {
+                const response = await fetch(`/api/users/${usuarioParaDeletar.id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Usuário removido com sucesso!');
+                    bootstrap.Modal.getInstance(document.getElementById('modal-confirmar-delete')).hide();
+                    carregarUsuarios();
+                } else {
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao remover usuário');
+            }
+        });
+
+        // Carregar usuários ao carregar a página
+        document.addEventListener('DOMContentLoaded', carregarUsuarios);
+    </script>
+</body>
+</html>

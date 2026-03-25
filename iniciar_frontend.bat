@@ -29,7 +29,7 @@ echo.
 
 REM Instalar dependências
 echo Verificando dependências...
-pip install -q -r requirements.txt
+python -m pip install -r requirements.txt
 if %errorlevel% neq 0 (
     echo ✗ Erro ao instalar dependências
     pause

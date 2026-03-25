@@ -16,14 +16,26 @@ const API_BASE = 'http://localhost:5000/api';
 document.addEventListener('DOMContentLoaded', function () {
     carregarDados();
     configurarEventos();
-    
+    if (document.getElementById('admin-users-list')) {
+        carregarUsuariosAdmin();
+    }
     // Recarregar dados a cada 5 segundos
     setInterval(carregarDados, 5000);
 });
 
 // =============================================================================
-// FUNÇÕES DE NAVEGAÇÃO
+// FUNÇÕES AUXILIARES
 // =============================================================================
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/\'/g, '&#39;');
+}
 
 function showSection(section) {
     // Ocultar todas as seções
@@ -58,6 +70,17 @@ function carregarDados() {
         productsData = produtos;
         atualizarKPIs(resumo);
         atualizarEstoqueBaixo();
+
+        // Atualiza a tabela e gráficos conforme seção ativa (auto-refresh)
+        if (document.getElementById('produtos-section').style.display !== 'none') {
+            atualizarTabelaProdutos();
+        }
+        if (document.getElementById('dashboard-section').style.display !== 'none') {
+            atualizarDashboard();
+        }
+        if (document.getElementById('relatorios-section').style.display !== 'none') {
+            atualizarRelatorios();
+        }
     })
     .catch(error => mostrarErro('Erro ao carregar dados', error));
 }
@@ -82,14 +105,14 @@ function atualizarEstoqueBaixo() {
             
             tbody.innerHTML = datos.map(prod => `
                 <tr>
-                    <td><strong>${prod.id}</strong></td>
-                    <td>${prod.nome}</td>
-                    <td><span class="badge bg-secondary">${prod.categoria}</span></td>
-                    <td>${prod.quantidade}</td>
-                    <td>${prod.minimo}</td>
-                    <td><strong class="text-danger">-${prod.faltam}</strong></td>
+                    <td><strong>${escapeHtml(prod.id)}</strong></td>
+                    <td>${escapeHtml(prod.nome)}</td>
+                    <td><span class="badge bg-secondary">${escapeHtml(prod.categoria)}</span></td>
+                    <td>${escapeHtml(prod.quantidade)}</td>
+                    <td>${escapeHtml(prod.minimo)}</td>
+                    <td><strong class="text-danger">-${escapeHtml(prod.faltam)}</strong></td>
                     <td>
-                        <button class="btn btn-sm btn-success" onclick="abrirMovimentacao('${prod.id}')">
+                        <button class="btn btn-sm btn-success" onclick="abrirMovimentacao('${escapeHtml(prod.id)}')">
                             <i class="fas fa-arrow-up"></i> Entrada
                         </button>
                     </td>
@@ -163,7 +186,7 @@ function atualizarGraficoTopProdutos() {
             
             const ctx = document.getElementById('topProdutosChart').getContext('2d');
             topProdutosChart = new Chart(ctx, {
-                type: 'horizontalBar',
+                type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
@@ -204,13 +227,12 @@ function atualizarTabelaProdutos() {
     
     tbody.innerHTML = productsData.map(prod => `
         <tr>
-            <td><strong>${prod.id}</strong></td>
-            <td>${prod.nome}</td>
-            <td><span class="badge bg-secondary">${prod.categoria}</span></td>
+            <td><strong>${escapeHtml(prod.id)}</strong></td>
+            <td>${escapeHtml(prod.nome)}</td>
+            <td><span class="badge bg-secondary">${escapeHtml(prod.categoria)}</span></td>
             <td>R$ ${formatarMoeda(prod.preco)}</td>
-            <td>${prod.quantidade}</td>
-            <td>R$ ${formatarMoeda(prod.valor_total)}</td>
-            <td>
+            <td>${escapeHtml(prod.quantidade)}</td>
+            <td>R$ ${formatarMoeda(prod.valor_total)}</td>            <td>${escapeHtml(prod.data_atualizacao || '-')}</td>            <td>
                 ${prod.abaixo_minimo 
                     ? '<span class="badge badge-baixo">BAIXO</span>' 
                     : '<span class="badge badge-ok">OK</span>'
@@ -218,13 +240,13 @@ function atualizarTabelaProdutos() {
             </td>
             <td>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-info" onclick="editarProduto('${prod.id}')" title="Editar">
+                    <button class="btn btn-info" onclick="editarProduto('${escapeHtml(prod.id)}')" title="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-success" onclick="abrirMovimentacao('${prod.id}')" title="Movimentar">
+                    <button class="btn btn-success" onclick="abrirMovimentacao('${escapeHtml(prod.id)}')" title="Movimentar">
                         <i class="fas fa-arrows-alt-v"></i>
                     </button>
-                    <button class="btn btn-danger" onclick="deletarProduto('${prod.id}')" title="Deletar">
+                    <button class="btn btn-danger" onclick="deletarProduto('${escapeHtml(prod.id)}')" title="Deletar">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -246,7 +268,7 @@ function editarProduto(id) {
     if (!produto) return;
     
     currentProdutoId = id;
-    document.getElementById('modProdutoTitle').textContent = 'Editar Produto';
+    document.getElementById('modalProdutoTitle').textContent = 'Editar Produto';
     document.getElementById('prodId').value = produto.id;
     document.getElementById('prodNome').value = produto.nome;
     document.getElementById('prodCategoria').value = produto.categoria;
@@ -288,7 +310,10 @@ function salvarProduto() {
     .then(r => r.json())
     .then(resposta => {
         mostrarAlerta('Produto ' + (currentProdutoId ? 'atualizado' : 'criado') + ' com sucesso!', 'success');
+        currentProdutoId = null;
+        document.getElementById('prodId').disabled = false;
         bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
+        document.getElementById('formProduto').reset();
         carregarDados();
         atualizarTabelaProdutos();
     })
@@ -371,9 +396,9 @@ function atualizarRelatorioCategorias() {
             const tbody = document.getElementById('relatorio-categoria-table');
             tbody.innerHTML = categorias.map(cat => `
                 <tr>
-                    <td><strong>${cat.categoria}</strong></td>
-                    <td>${cat.produtos}</td>
-                    <td>${cat.quantidade}</td>
+                    <td><strong>${escapeHtml(cat.categoria)}</strong></td>
+                    <td>${escapeHtml(cat.produtos)}</td>
+                    <td>${escapeHtml(cat.quantidade)}</td>
                     <td>R$ ${formatarMoeda(cat.valor_total)}</td>
                 </tr>
             `).join('');
@@ -388,9 +413,9 @@ function atualizarRelatorioTopProdutos() {
             const tbody = document.getElementById('relatorio-top-table');
             tbody.innerHTML = produtos.map(prod => `
                 <tr>
-                    <td>${prod.id}</td>
-                    <td>${prod.nome}</td>
-                    <td>${prod.quantidade}</td>
+                    <td>${escapeHtml(prod.id)}</td>
+                    <td>${escapeHtml(prod.nome)}</td>
+                    <td>${escapeHtml(prod.quantidade)}</td>
                     <td>R$ ${formatarMoeda(prod.preco)}</td>
                     <td>R$ ${formatarMoeda(prod.valor_total)}</td>
                 </tr>
@@ -474,6 +499,93 @@ function gerarCores(quantidade) {
 
 function formatarMoeda(valor) {
     return parseFloat(valor).toFixed(2).replace('.', ',');
+}
+
+// =============================================================================
+// ADMIN (PANORAMA NO DASHBOARD)
+// =============================================================================
+
+function carregarUsuariosAdmin() {
+    fetch(`${API_BASE}/users`)
+        .then(r => r.json())
+        .then(usuarios => {
+            const listEl = document.getElementById('admin-users-list');
+            if (!listEl) return;
+
+            if (!Array.isArray(usuarios) || usuarios.length === 0) {
+                listEl.innerHTML = '<p class="text-muted">Nenhum usuário cadastrado.</p>';
+                return;
+            }
+
+            listEl.innerHTML = usuarios.map(u => `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>${escapeHtml(u.username)}</strong> <br>
+                        <small>${escapeHtml(u.role)}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deletarUsuarioAdmin(${u.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Erro ao carregar usuários admin:', error);
+        });
+}
+
+function criarUsuarioAdmin(event) {
+    event.preventDefault();
+
+    const username = document.getElementById('admin-username').value.trim();
+    const password = document.getElementById('admin-password').value.trim();
+    const role = document.getElementById('admin-role').value;
+
+    if (!username || !password) {
+        alert('Informe usuário e senha');
+        return;
+    }
+
+    fetch(`${API_BASE}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role })
+    })
+    .then(r => r.json().then(data => ({ status: r.status, body: data })))
+    .then(res => {
+        if (res.status === 201) {
+            alert('Usuário criado com sucesso');
+            document.getElementById('admin-criar-user-form').reset();
+            carregarUsuariosAdmin();
+        } else {
+            alert(res.body.erro || 'Erro ao criar usuário');
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao criar usuário:', error);
+        alert('Erro ao criar usuário');
+    });
+}
+
+function deletarUsuarioAdmin(id) {
+    if (!confirm('Deseja realmente excluir este usuário?')) return;
+    
+    fetch(`${API_BASE}/users/${id}`, {
+        method: 'DELETE'
+    })
+    .then(r => r.json().then(data => ({ status: r.status, body: data })))
+    .then(res => {
+        if (res.status === 200) {
+            alert('Usuário removido com sucesso');
+            carregarUsuariosAdmin();
+        } else {
+            alert(res.body.erro || 'Erro ao remover usuário');
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao remover usuário:', error);
+        alert('Erro ao remover usuário');
+    });
 }
 
 function mostrarAlerta(mensagem, tipo = 'info') {
