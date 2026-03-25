@@ -1,0 +1,155 @@
+/**
+ * GUIA RÁPIDO - Sistema de Gestão de Estoque
+ * 
+ * Este arquivo contém instruções rápidas de uso
+ */
+
+// =========================================
+// 1. PRIMEIRO USO
+// =========================================
+
+Copie os dados de exemplo:
+1. Renomeie "dados_estoque_exemplo.json" para "dados_estoque.json"
+2. Execute: python estoque.py
+3. Use a opção 5 para ver os produtos carregados
+
+// =========================================
+// 2. FLUXO BÁSICO DE OPERAÇÃO
+// =========================================
+
+CENÁRIO: Sua empresa recebe mercadorias e vende produtos
+
+PASSO 1 - Adicionar Produtos (Opção 1)
+   - Instituto informações do novo produto
+   - Sistema gera ID único
+   - Dados salvos automaticamente
+
+PASSO 2 - Receber Compras (Opção 3)
+   - Quando mercadoria chega, seleciona "Entrada de Estoque"
+   - Informa ID e quantidade recebida
+   - Sistema atualiza automaticamente
+
+PASSO 3 - Registrar Vendas (Opção 4)
+   - Quando vende, usa "Saída de Estoque"
+   - Valor é decrementado do total
+   - Alerta se quantidade for insuficiente
+
+PASSO 4 - Consultar (Opção 5 ou 6)
+   - Qualquer momento pode verificar o que tem em estoque
+   - Lista completa ou busca específica
+
+PASSO 5 - Gerar Relatórios (Opções 7, 8, 9)
+   - Produtos baixos = itens que precisam reposição
+   - Valor total = quanto dinheiro investido
+   - Por categoria = organização por tipo
+
+// =========================================
+// 3. DADOS IMPORTANTES DE CADA PRODUTO
+// =========================================
+
+ID: Código único (ex: PROD001, TEC-2026-001)
+Nome: Nome do produto
+Categoria: Tipo (Informática, Áudio, Cabos, etc)
+Preço: Valor unitário
+Quantidade: Quanto tem agora
+Estoque Mínimo: Limite para alerta
+Localização: Onde fica fisicamente
+
+// =========================================
+// 4. MENSAGENS DO SISTEMA
+// =========================================
+
+✓ = Operação bem-sucedida
+✗ = Erro ou problema encontrado
+
+Exemplos:
+✓ Produto 'Notebook' adicionado com sucesso!
+✗ Quantidade insuficiente! Disponível: 5
+
+// =========================================
+// 5. ARQUIVO DE DADOS
+// =========================================
+
+Localização: dados_estoque.json (mesmo diretório)
+
+Formato: JSON estruturado
+Backup automático: feito a cada mudança
+Recuperação: automática ao iniciar
+
+NUNCA delete o arquivo manualmente!
+Se precisar limpar, apenas esvazie o conteúdo:
+[DEIXE COMO {}]
+
+// =========================================
+// 6. EXEMPLOS DE CATEGORIAS
+// =========================================
+
+Informática: Notebooks, Computadores
+Periféricos: Mouse, Teclado, Webcam
+Áudio: Fones, Headsets, Microfones
+Cabos: USB, HDMI, Ethernet
+Armazenamento: Pen Drives, SSDs, HDDs
+Redes: Roteadores, Modems
+Escritório: Mesas, Cadeiras
+Limpeza: Produtos de limpeza
+
+// =========================================
+// 7. DICAS PROFISSIONAIS
+// =========================================
+
+✓ Use IDs sistemáticos (PROD-001, PROD-002)
+✓ Defina categorias padrão para a empresa
+✓ Sempre ajuste estoque mínimo realista
+✓ Revise relatórios semanalmente
+✓ Mantenha localização atualizada
+✓ Faça backup do arquivo JSON regularmente
+
+✗ Não deixe produtos sem localização
+✗ Não misture maiúsculas/minúsculas em categorias
+✗ Não ignore alertas de estoque baixo
+
+// =========================================
+// 8. RESOLVENDO ERROS COMUNS
+// =========================================
+
+ERRO: "Produto com ID já existe"
+→ Use outro ID ou remova o produto anterior
+
+ERRO: "Quantidade insuficiente"
+→ Verifique estoque disponível (opção 6)
+→ Ou registre entrada primeiro (opção 3)
+
+ERRO: "Dados inválidos"
+→ Preço deve ser número (ex: 99.90)
+→ Quantidade deve ser inteiro (ex: 5)
+→ Não use letras onde pede números
+
+ERRO: "Produto não encontrado"
+→ Verifique ID (case-sensitive)
+→ Use opção 5 para listar IDs disponíveis
+
+// =========================================
+// 9. ATALHOS ÚTEIS
+// =========================================
+
+Menu: Sempre digita opção + ENTER
+Sair: Opção 0
+Voltar ao menu: Qualquer erro te retorna ao menu
+Limpar tela: Ctrl + L (alguns terminais)
+
+// =========================================
+// 10. SUPORTE E CONTATO
+// =========================================
+
+Dúvidas sobre o código?
+→ Veja comentários dentro do arquivo estoque.py
+
+Precisa de ajustes?
+→ Edite estoque.py ou solicite modificações
+
+Quer adicionar funcionalidades?
+→ Sugestões: backup automático, gráficos, mais relatórios
+
+// =========================================
+
+Desenvolvido para facilitar a gestão de estoque da sua empresa! 📦✨
