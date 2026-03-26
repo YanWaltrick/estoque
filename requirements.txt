@@ -2,48 +2,58 @@
 
 ## Requisitos de Sistema
 
-### Python
 - Python 3.6 ou superior
-- Verifique sua versão:
-  ```
-  python --version
-  ```
+- Verifique sua versão: python --version
 
-### Dependências
-- **Nenhuma dependência externa!**
-- O sistema usa apenas bibliotecas padrão do Python:
-  - `json` - para armazenar dados
-  - `os` - para operações do sistema
-  - `datetime` - para datas e horas
-  - `typing` - para type hints
+## Dependências do Projeto
+
+# Framework Web
+Flask==3.1.3
+flask-login==0.6.3
+flask-sqlalchemy==3.1.1
+
+# Banco de Dados
+SQLAlchemy==2.0.48
+psycopg2-binary==2.9.11  # Driver PostgreSQL
+
+# Variáveis de Ambiente
+python-dotenv==1.2.2
+
+# Dependências associadas (instaladas automaticamente)
+blinker==1.9.0
+click==8.3.1
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+Werkzeug==3.1.7
+greenlet==3.3.2
+typing-extensions==4.15.0
 
 ## Instalação
 
-### 1. Baixar/Copiar os Arquivos
-
-Certifique-se de ter estes arquivos:
-- `estoque.py` - Arquivo principal
-- `teste.py` - Script de testes
-- `dados_estoque_exemplo.json` - Dados de exemplo
-- `README.md` - Documentação
-- `GUIA_RAPIDO.txt` - Guia de operações
-
-### 2. Preparar Dados Iniciais (Opcional)
-
-Se quer começar com dados de exemplo:
+### Instalar todas as dependências:
 ```bash
-# Copie o arquivo de exemplo
-copy dados_estoque_exemplo.json dados_estoque.json
+pip install -r requirements.txt
 ```
 
-## Como Executar
+ou
 
-### Modo Interativo (Menu)
+```bash
+python -m pip install -r requirements.txt
+```
+
+### Como Executar
+
+```bash
+python app.py
+```
+
+Para o sistema de estoque padrão:
 ```bash
 python estoque.py
 ```
 
-### Modo Teste
+Para testes:
 ```bash
 python teste.py
 ```

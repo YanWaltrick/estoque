@@ -2,19 +2,30 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
-from database import create_app, db
+from database import create_app, db, DATABASE_URL
 from estoque_db import EstoqueDB
 from models import Produto, Movimentacao, User
 import os
 
-# Criar aplicação Flask
+# Criar aplicacao Flask
 app, db = create_app()
+
+# Exibir informacoes de configuracao
+print("\n" + "="*60)
+print("Sistema de Estoque - Inicializando...")
+print("="*60)
+db_type = "PostgreSQL" if "postgresql" in DATABASE_URL else "SQLite"
+print(f"Banco de dados: {db_type}")
+if db_type == "SQLite":
+    print("Info: PostgreSQL nao encontrado. Usando SQLite local.")
+    print("      Para usar PostgreSQL, instale e configure em .env")
+print("="*60 + "\n")
 
 # Configurar Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = 'Faça login para acessar esta página.'
+login_manager.login_message = 'Faca login para acessar esta pagina.'
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -470,32 +481,43 @@ def init_db():
     """Inicializa o banco de dados e cria as tabelas"""
     global estoque
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("Tabelas do banco criadas/verificadas")
 
-        # Se a tabela users já existir, garantir que a coluna role existe
-        if db.engine.dialect.name == 'sqlite':
-            with db.engine.connect() as conn:
-                coluna_role = conn.execute(text("PRAGMA table_info(users)"))
-                coluna_role = coluna_role.fetchall()
-                if coluna_role and 'role' not in [c[1] for c in coluna_role]:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user'"))
+            # Verificar coluna role apenas para SQLite
+            if db.engine.dialect.name == 'sqlite':
+                try:
+                    with db.engine.connect() as conn:
+                        coluna_role = conn.execute(text("PRAGMA table_info(users)"))
+                        coluna_role = coluna_role.fetchall()
+                        if coluna_role and 'role' not in [c[1] for c in coluna_role]:
+                            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user'"))
+                            conn.commit()
+                except:
+                    pass
 
-        # Criar usuário admin se não existir
-        admin_user = User.query.filter_by(username='admin').first()
-        if not admin_user:
-            admin_user = User(username='admin', password=generate_password_hash('admin'), role='admin')
-            db.session.add(admin_user)
-            db.session.commit()
-            print("✓ Usuário admin criado")
-        else:
-            # Se existir mas não tiver role definido, atualiza para admin
-            if not admin_user.role or admin_user.role not in ['user', 'admin']:
-                admin_user.role = 'admin'
+            # Criar usuario admin se nao existir
+            admin_user = User.query.filter_by(username='admin').first()
+            if not admin_user:
+                admin_user = User(username='admin', password=generate_password_hash('admin'), role='admin')
+                db.session.add(admin_user)
                 db.session.commit()
+                print("Usuario admin criado (login: admin / senha: admin)")
+            else:
+                # Se existir mas nao tiver role, atualiza
+                if not admin_user.role or admin_user.role not in ['user', 'admin']:
+                    admin_user.role = 'admin'
+                    db.session.commit()
 
-        # Inicializar o estoque dentro do contexto da aplicação
-        estoque = EstoqueDB()
-        print("✓ Banco de dados inicializado")
+            # Inicializar o estoque
+            estoque = EstoqueDB()
+            print("Banco de dados inicializado com sucesso\n")
+            
+        except Exception as erro:
+            print(f"ERRO ao inicializar banco: {erro}")
+            print("Verificar: PostgreSQL rodando? Credenciais corretas? Banco criado?")
+            raise
 
 # Inicializar banco de dados na primeira execução
 init_db()

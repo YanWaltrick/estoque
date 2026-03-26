@@ -16,7 +16,7 @@ class EstoqueDB:
         arquivo_json = "dados_estoque.json"
         if os.path.exists(arquivo_json) and not self._banco_tem_dados():
             try:
-                print("🔄 Migrando dados do JSON para banco de dados...")
+                print("Migrando dados do JSON para banco de dados...")
                 with open(arquivo_json, 'r', encoding='utf-8') as f:
                     dados = json.load(f)
 
@@ -33,7 +33,7 @@ class EstoqueDB:
                     db.session.add(produto)
 
                 db.session.commit()
-                print(f"✓ Migração concluída: {len(dados)} produtos transferidos")
+                print(f"Migracao concluida: {len(dados)} produtos transferidos")
 
                 # Backup do arquivo JSON
                 backup_file = f"{arquivo_json}.backup"
