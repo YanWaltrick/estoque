@@ -105,3 +105,31 @@ class Categoria(db.Model):
     def __init__(self, nome, descricao=""):
         self.nome = nome
         self.descricao = descricao
+
+
+class Chamada(db.Model):
+    """Modelo para chamadas/notificações de usuários para admins"""
+    __tablename__ = 'chamadas'
+
+    id_chamada = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    lida = db.Column(db.Boolean, default=False)
+
+    # Relacionamento com usuário
+    usuario = db.relationship('User', backref='chamadas')
+
+    def __init__(self, id_usuario, mensagem):
+        self.id_usuario = id_usuario
+        self.mensagem = mensagem
+
+    def to_dict(self):
+        return {
+            'id': self.id_chamada,
+            'id_usuario': self.id_usuario,
+            'usuario': self.usuario.username if self.usuario else 'Desconhecido',
+            'mensagem': self.mensagem,
+            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
+            'lida': self.lida
+        }

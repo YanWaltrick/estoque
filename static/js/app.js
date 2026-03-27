@@ -7,7 +7,7 @@ let currentProdutoId = null;
 let categoriasChart = null;
 let topProdutosChart = null;
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = window.location.origin + '/api';
 
 // =============================================================================
 // INICIALIZAÇÃO
@@ -16,11 +16,8 @@ const API_BASE = 'http://localhost:5000/api';
 document.addEventListener('DOMContentLoaded', function () {
     carregarDados();
     configurarEventos();
-    if (document.getElementById('admin-users-list')) {
-        carregarUsuariosAdmin();
-    }
-    // Recarregar dados a cada 5 segundos
-    setInterval(carregarDados, 5000);
+    // Recarregar dados a cada 1 minuto e 30 segundos
+    setInterval(carregarDados, 90000);
 });
 
 // =============================================================================
@@ -54,6 +51,8 @@ function showSection(section) {
         atualizarTabelaProdutos();
     } else if (section === 'relatorios') {
         atualizarRelatorios();
+    } else if (section === 'chamadas') {
+        // Nenhuma ação específica necessária para chamadas
     }
 }
 
@@ -482,6 +481,12 @@ function configurarEventos() {
             novoFormulario();
         }
     });
+
+    // Formulário de chamadas
+    document.getElementById('formChamada').addEventListener('submit', function (e) {
+        e.preventDefault();
+        enviarChamada();
+    });
 }
 
 function gerarCores(quantidade) {
@@ -505,88 +510,7 @@ function formatarMoeda(valor) {
 // ADMIN (PANORAMA NO DASHBOARD)
 // =============================================================================
 
-function carregarUsuariosAdmin() {
-    fetch(`${API_BASE}/users`)
-        .then(r => r.json())
-        .then(usuarios => {
-            const listEl = document.getElementById('admin-users-list');
-            if (!listEl) return;
 
-            if (!Array.isArray(usuarios) || usuarios.length === 0) {
-                listEl.innerHTML = '<p class="text-muted">Nenhum usuário cadastrado.</p>';
-                return;
-            }
-
-            listEl.innerHTML = usuarios.map(u => `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div>
-                        <strong>${escapeHtml(u.username)}</strong> <br>
-                        <small>${escapeHtml(u.role)}</small>
-                    </div>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deletarUsuarioAdmin(${u.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `).join('');
-        })
-        .catch(error => {
-            console.error('Erro ao carregar usuários admin:', error);
-        });
-}
-
-function criarUsuarioAdmin(event) {
-    event.preventDefault();
-
-    const username = document.getElementById('admin-username').value.trim();
-    const password = document.getElementById('admin-password').value.trim();
-    const role = document.getElementById('admin-role').value;
-
-    if (!username || !password) {
-        alert('Informe usuário e senha');
-        return;
-    }
-
-    fetch(`${API_BASE}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, role })
-    })
-    .then(r => r.json().then(data => ({ status: r.status, body: data })))
-    .then(res => {
-        if (res.status === 201) {
-            alert('Usuário criado com sucesso');
-            document.getElementById('admin-criar-user-form').reset();
-            carregarUsuariosAdmin();
-        } else {
-            alert(res.body.erro || 'Erro ao criar usuário');
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao criar usuário:', error);
-        alert('Erro ao criar usuário');
-    });
-}
-
-function deletarUsuarioAdmin(id) {
-    if (!confirm('Deseja realmente excluir este usuário?')) return;
-    
-    fetch(`${API_BASE}/users/${id}`, {
-        method: 'DELETE'
-    })
-    .then(r => r.json().then(data => ({ status: r.status, body: data })))
-    .then(res => {
-        if (res.status === 200) {
-            alert('Usuário removido com sucesso');
-            carregarUsuariosAdmin();
-        } else {
-            alert(res.body.erro || 'Erro ao remover usuário');
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao remover usuário:', error);
-        alert('Erro ao remover usuário');
-    });
-}
 
 function mostrarAlerta(mensagem, tipo = 'info') {
     const alertaHtml = `
@@ -612,6 +536,37 @@ function mostrarAlerta(mensagem, tipo = 'info') {
 function mostrarErro(mensagem, error) {
     console.error(mensagem, error);
     mostrarAlerta(mensagem + ': ' + error.message, 'danger');
+}
+
+function enviarChamada() {
+    const mensagem = document.getElementById('chamadaMensagem').value.trim();
+
+    if (!mensagem) {
+        mostrarAlerta('Por favor, digite uma mensagem.', 'warning');
+        return;
+    }
+
+    fetch(`${API_BASE}/chamadas`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            mensagem: mensagem
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.mensagem) {
+            mostrarAlerta('Chamada enviada com sucesso! Os administradores foram notificados.', 'success');
+            document.getElementById('formChamada').reset();
+        } else {
+            mostrarAlerta('Erro ao enviar chamada: ' + (data.erro || 'Erro desconhecido'), 'danger');
+        }
+    })
+    .catch(error => {
+        mostrarErro('Erro ao enviar chamada', error);
+    });
 }
 
 // Autenticar e carregar dados iniciais

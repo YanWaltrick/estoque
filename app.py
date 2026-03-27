@@ -14,11 +14,16 @@ app, db = create_app()
 print("\n" + "="*60)
 print("Sistema de Estoque - Inicializando...")
 print("="*60)
-db_type = "PostgreSQL" if "postgresql" in DATABASE_URL else "SQLite"
+if "mysql" in DATABASE_URL:
+    db_type = "MySQL"
+elif "sqlite" in DATABASE_URL:
+    db_type = "SQLite"
+else:
+    db_type = "Desconhecido"
 print(f"Banco de dados: {db_type}")
 if db_type == "SQLite":
-    print("Info: PostgreSQL nao encontrado. Usando SQLite local.")
-    print("      Para usar PostgreSQL, instale e configure em .env")
+    print("Info: MySQL nao configurado. Usando SQLite local.")
+    print("      Para usar MySQL, configure DATABASE_URL em .env")
 print("="*60 + "\n")
 
 # Configurar Flask-Login
@@ -117,7 +122,7 @@ def criar_user():
     if User.query.filter_by(username=username).first():
         return jsonify({'erro': 'Username já existe'}), 400
     
-    novo_user = User(username=username, password=generate_password_hash(password), role=role)
+    novo_user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'), role=role)
     db.session.add(novo_user)
     db.session.commit()
     
@@ -142,6 +147,57 @@ def deletar_user(user_id):
     db.session.commit()
     
     return jsonify({'mensagem': 'Usuário removido com sucesso'})
+
+# ============================================================================
+# ROTAS - CHAMADAS/NOTIFICAÇÕES
+# ============================================================================
+
+@app.route('/api/chamadas', methods=['POST'])
+@login_required
+def criar_chamada():
+    """Cria uma nova chamada/notificação para admins"""
+    if current_user.is_admin:
+        return jsonify({'erro': 'Administradores não podem enviar chamadas'}), 400
+    
+    dados = request.get_json()
+    mensagem = dados.get('mensagem', '').strip()
+    
+    if not mensagem:
+        return jsonify({'erro': 'Mensagem é obrigatória'}), 400
+    
+    nova_chamada = Chamada(id_usuario=current_user.id, mensagem=mensagem)
+    db.session.add(nova_chamada)
+    db.session.commit()
+    
+    return jsonify({'mensagem': 'Chamada enviada com sucesso'}), 201
+
+@app.route('/api/chamadas', methods=['GET'])
+@login_required
+def get_chamadas():
+    """Retorna lista de chamadas (apenas para admins)"""
+    if not current_user.is_admin:
+        return jsonify({'erro': 'Acesso negado'}), 403
+    
+    chamadas = Chamada.query.order_by(Chamada.data_criacao.desc()).all()
+    resultado = [chamada.to_dict() for chamada in chamadas]
+    
+    return jsonify(resultado)
+
+@app.route('/api/chamadas/<int:chamada_id>/ler', methods=['PUT'])
+@login_required
+def marcar_chamada_lida(chamada_id):
+    """Marca uma chamada como lida (apenas para admins)"""
+    if not current_user.is_admin:
+        return jsonify({'erro': 'Acesso negado'}), 403
+    
+    chamada = Chamada.query.get(chamada_id)
+    if not chamada:
+        return jsonify({'erro': 'Chamada não encontrada'}), 404
+    
+    chamada.lida = True
+    db.session.commit()
+    
+    return jsonify({'mensagem': 'Chamada marcada como lida'})
 
 # ============================================================================
 # ROTAS - PÁGINA PRINCIPAL
@@ -510,13 +566,18 @@ def init_db():
                     admin_user.role = 'admin'
                     db.session.commit()
 
+            # Se a senha do admin for scrypt, atualiza para um hash compatível com pbkdf2:sha256
+            if admin_user and admin_user.password.startswith('scrypt:'):
+                admin_user.password = generate_password_hash('admin', method='pbkdf2:sha256')
+                db.session.commit()
+
             # Inicializar o estoque
             estoque = EstoqueDB()
             print("Banco de dados inicializado com sucesso\n")
             
         except Exception as erro:
             print(f"ERRO ao inicializar banco: {erro}")
-            print("Verificar: PostgreSQL rodando? Credenciais corretas? Banco criado?")
+            print("Verificar: MySQL rodando? Credenciais corretas? Banco criado?")
             raise
 
 # Inicializar banco de dados na primeira execução

@@ -7,14 +7,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuracao do banco de dados
+# Suporta MySQL (mysql+pymysql), SQLite local e URL customizada
 def get_database_url():
     """Obtem URL do banco com fallback para SQLite"""
     db_url = os.getenv('DATABASE_URL')
-    
-    if db_url and db_url.startswith('postgresql'):
+
+    if db_url:
+        if db_url.startswith('mysql') or db_url.startswith('mysql+pymysql') or db_url.startswith('sqlite'):
+            return db_url
+        # Se usar URL de outro driver, tenta passar adiante
         return db_url
-    
-    # Fallback para SQLite
+
+    # Fallback para SQLite local
     basedir = os.path.abspath(os.path.dirname(__file__))
     return f'sqlite:///{os.path.join(basedir, "estoque.db")}'
 

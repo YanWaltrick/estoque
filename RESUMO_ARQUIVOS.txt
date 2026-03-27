@@ -80,7 +80,7 @@
    ├─ Índices para otimização
    ├─ Triggers para automação
    ├─ Consultas úteis
-   └─ Para futuro: migrar do JSON para MySQL/PostgreSQL
+   └─ Para futuro: migrar do JSON para MySQL
 
 
 📁 ARQUIVO DE DADOS
@@ -167,7 +167,7 @@ CADA PRODUTO CONTÉM:
 🔄 Possíveis expansões:
    ✓ Interface web (Django/Flask)
    ✓ Aplicativo desktop (tkinter)
-   ✓ Banco de dados SQL (MySQL/PostgreSQL)
+   ✓ Banco de dados SQL (MySQL)
    ✓ Sistema multiusuário
    ✓ Gráficos e dashboards
    ✓ Histórico de movimentações

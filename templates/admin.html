@@ -97,6 +97,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- Chamadas dos usuários -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-bell"></i> Chamadas dos Usuários
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="lista-chamadas">
+                            <!-- Chamadas serão carregadas aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal de confirmação para deletar -->
@@ -256,8 +274,91 @@
             }
         });
 
+        // Carregar chamadas
+        async function carregarChamadas() {
+            try {
+                const response = await fetch('/api/chamadas');
+                const chamadas = await response.json();
+
+                const lista = document.getElementById('lista-chamadas');
+                lista.innerHTML = '';
+
+                if (chamadas.length === 0) {
+                    lista.innerHTML = '<p class="text-muted">Nenhuma chamada pendente.</p>';
+                    return;
+                }
+
+                chamadas.forEach(chamada => {
+                    const chamadaDiv = document.createElement('div');
+                    chamadaDiv.className = `border rounded p-3 mb-3 ${chamada.lida ? 'bg-light' : 'bg-warning-subtle'}`;
+                    
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'd-flex justify-content-between align-items-start mb-2';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `
+                        <strong>${escapeHtml(chamada.usuario)}</strong>
+                        <small class="text-muted d-block">${chamada.data_criacao}</small>
+                    `;
+                    
+                    const statusDiv = document.createElement('div');
+                    if (!chamada.lida) {
+                        statusDiv.innerHTML = '<span class="badge bg-warning">Nova</span>';
+                    } else {
+                        statusDiv.innerHTML = '<span class="badge bg-secondary">Lida</span>';
+                    }
+                    
+                    headerDiv.appendChild(infoDiv);
+                    headerDiv.appendChild(statusDiv);
+                    
+                    const mensagemDiv = document.createElement('div');
+                    mensagemDiv.className = 'mb-2';
+                    mensagemDiv.textContent = chamada.mensagem;
+                    
+                    const acoesDiv = document.createElement('div');
+                    if (!chamada.lida) {
+                        acoesDiv.innerHTML = `
+                            <button class="btn btn-sm btn-success" onclick="marcarComoLida(${chamada.id})">
+                                <i class="fas fa-check"></i> Marcar como Lida
+                            </button>
+                        `;
+                    }
+                    
+                    chamadaDiv.appendChild(headerDiv);
+                    chamadaDiv.appendChild(mensagemDiv);
+                    chamadaDiv.appendChild(acoesDiv);
+                    
+                    lista.appendChild(chamadaDiv);
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('lista-chamadas').innerHTML = '<p class="text-danger">Erro ao carregar chamadas.</p>';
+            }
+        }
+
+        // Marcar chamada como lida
+        async function marcarComoLida(chamadaId) {
+            try {
+                const response = await fetch(`/api/chamadas/${chamadaId}/ler`, {
+                    method: 'PUT'
+                });
+
+                if (response.ok) {
+                    carregarChamadas(); // Recarregar lista
+                } else {
+                    alert('Erro ao marcar chamada como lida');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao marcar chamada como lida');
+            }
+        }
+
         // Carregar usuários ao carregar a página
-        document.addEventListener('DOMContentLoaded', carregarUsuarios);
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarUsuarios();
+            carregarChamadas();
+        });
     </script>
 </body>
 </html>

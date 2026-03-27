@@ -1,91 +1,27 @@
 @echo off
-REM Instalador PostgreSQL - Sistema Estoque
+REM Instalador MySQL - Sistema Estoque
 
 echo.
 echo ======================================
-echo Instalador PostgreSQL v15
+echo Instalador MySQL (manual)
 echo ======================================
 echo.
-
-REM Verificar se ja esta instalado
-if exist "C:\Program Files\PostgreSQL\15\bin\psql.exe" (
-    echo [OK] PostgreSQL ja esta instalado!
-    "C:\Program Files\PostgreSQL\15\bin\psql.exe" --version
-    echo.
-    echo Pulando instalacao...
-    echo.
-    pause
-    exit /b 0
-)
-
-REM Verificar permissoes de admin
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERRO] Precisa ser executado como Administrador!
-    echo.
-    echo Clique com botao direito neste arquivo e selecione:
-    echo "Executar como administrador"
-    echo.
-    pause
-    exit /b 1
-)
-
-echo [1/3] Conhecendo requisitos...
-python --version
-if %errorlevel% neq 0 (
-    echo [ERRO] Python nao encontrado!
-    pause
-    exit /b 1
-)
-
-echo.
-echo [2/3] Baixando PostgreSQL (isso pode levar alguns minutos)...
-set TEMP_DIR=%TEMP%\postgresql_setup
-if not exist "!TEMP_DIR!" mkdir "!TEMP_DIR!"
-
-set PG_FILE=%TEMP_DIR%\postgresql-15.7.exe
-set PG_URL=https://get.enterprisedb.com/postgresql/postgresql-15.7-1-windows-x64.exe
-
-REM Usar PowerShell para baixar
-powershell -NoProfile -Command ^
-    "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%PG_URL%' -OutFile '%PG_FILE%' -UseBasicParsing" 2>nul
-
-if not exist "%PG_FILE%" (
-    echo [ERRO] Nao conseguiu baixar PostgreSQL
-    echo.
-    echo Tente manualmente:
-    echo https://www.postgresql.org/download/windows/
-    echo.
-    pause
-    exit /b 1
-)
-
-echo [OK] Download concluido
-echo.
-echo [3/3] Instalando (isso pode levar alguns minutos)...
-echo.
-
-REM Executar instalador
-"%PG_FILE%" --mode unattended --superpassword postgres123 --serverport 5432
-
-REM Aguardar
-timeout /t 10 /nobreak
-
-REM Verificar
-echo.
-if exist "C:\Program Files\PostgreSQL\15\bin\psql.exe" (
-    echo ======================================
-    echo [OK] PostgreSQL instalado com sucesso!
-    echo ======================================
-    echo.
-    "C:\Program Files\PostgreSQL\15\bin\psql.exe" --version
-    echo.
-    del "%PG_FILE%" 2>nul
-    echo Instalacao concluida!
-) else (
-    echo [ERRO] Instalacao falhou
-)
-
-echo.
-echo Pressione qualquer tecla para continuar...
-pause >nul
+echo Este script nao instalará automaticamente.
+echo Siga as instrucoes abaixo:
+   echo 1) Baixe e instale MySQL Community Server:
+      echo    https://dev.mysql.com/downloads/mysql/
+      echo 2) Durante a instalacao, anote a senha do usuario root.
+      echo 3) Certifique-se de que sqlcmd esta no PATH.
+      echo 4) Crie banco e usuario:
+         echo    mysql -u root -p
+         echo    CREATE DATABASE IF NOT EXISTS estoque_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+         echo    CREATE USER IF NOT EXISTS 'estoque_user'@'%' IDENTIFIED BY '12345';
+         echo    GRANT ALL PRIVILEGES ON estoque_db.* TO 'estoque_user'@'%';
+         echo    FLUSH PRIVILEGES;
+         echo    EXIT;
+         echo.
+         echo 5) Atualize .env com DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db
+         echo.
+         echo Pressione qualquer tecla para sair...
+         pause >nul
+         

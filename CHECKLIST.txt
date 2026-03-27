@@ -1,0 +1,200 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║               ✓ CHECKLIST DE INSTALAÇÃO - SISTEMA DE ESTOQUE                 ║
+║                     (Tudo pronto para rodar)                                 ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+📋 PRÉ-REQUISITOS
+═════════════════════════════════════════════════════════════════════════════════
+
+☐ Python 3.6+ instalado
+  → Verifique: python --version
+  → Se não tiver: https://www.python.org
+  → IMPORTANTE: Marque "Add Python to PATH"
+
+☐ MySQL Community Server instalado
+  → Verifique: mysql --version
+  → Se não tiver: https://dev.mysql.com/downloads/mysql/
+  → IMPORTANTE: Marque "Add MySQL to PATH"
+
+
+🚀 OPÇÃO 1: SETUP AUTOMÁTICO (RECOMENDADO)
+═════════════════════════════════════════════════════════════════════════════════
+
+1️⃣  Clique 2x em: EXECUTAR_SETUP.bat
+    OU execute: python setup_completo.py
+
+   Este script vai:
+   • Localizar MySQL
+   • Instalar dependências Python (Flask, MySQLdb, etc)
+   • Criar banco de dados 'estoque_db'
+   • Criar usuário 'estoque_user' com senha '12345'
+   • Configurar arquivo .env
+   • Testar conexão
+
+2️⃣  Aguarde a conclusão (5-10 minutos)
+
+3️⃣  Se tudo OK, vá para EXECUTAR SERVIDOR
+
+
+🪟 OPÇÃO 2: SETUP MANUAL (Se preferir)
+═════════════════════════════════════════════════════════════════════════════════
+
+ETAPA 1: Instalar Dependências Python
+───────────────────────────────────────
+python instalar_dependencias.py
+
+
+ETAPA 2: Configurar MySQL
+───────────────────────────────────────
+A) Abra terminal/CMD:
+   mysql -u root -p
+   (Digite a senha do root)
+
+B) Cole os comandos abaixo:
+
+   CREATE DATABASE IF NOT EXISTS estoque_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER IF NOT EXISTS 'estoque_user'@'%' IDENTIFIED BY '12345';
+   GRANT ALL PRIVILEGES ON estoque_db.* TO 'estoque_user'@'%';
+   FLUSH PRIVILEGES;
+   EXIT;
+
+C) OU execute:
+   python configurar_mysql.py
+
+
+ETAPA 3: Atualizar .env
+───────────────────────────────────────
+Edite o arquivo .env e verifique:
+
+   DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db
+   FLASK_ENV=production
+   SECRET_KEY=chave-super-secreta-altere-em-producao-12345789
+
+
+🚀 EXECUTAR SERVIDOR
+═════════════════════════════════════════════════════════════════════════════════
+
+OPÇÃO A: Clique 2x em INICIAR_SERVIDOR.bat
+
+OPÇÃO B: Terminal/CMD
+   python app.py
+
+
+📲 ACESSAR O SISTEMA
+═════════════════════════════════════════════════════════════════════════════════
+
+URL Local (mesma máquina):
+   http://localhost:5000
+
+URL Rede (outra máquina):
+   http://SEU-IP-AQUI:5000
+
+Login Padrão:
+   Usuário: admin
+   Senha: admin
+
+
+📁 ESTRUTURA DOS ARQUIVOS
+═════════════════════════════════════════════════════════════════════════════════
+
+EXECUTAR_SETUP.bat             → Clique aqui para setup automático
+INICIAR_SERVIDOR.bat           → Clique aqui para rodar servidor
+setup_completo.py              → Setup Python (chamado pelo .bat)
+instalar_dependencias.py       → Instala pip packages
+configurar_mysql.py            → Configura MySQL (criar banco/user)
+encontrar_mysql.py             → Localiza MySQL no sistema
+
+app.py                         → Servidor Flask (core)
+database.py                    → Configuração banco de dados
+models.py                      → Modelos de dados
+requirements.txt               → Lista de dependências
+.env                           → Variáveis de ambiente (GERADO)
+
+templates/                     → Páginas HTML
+static/                        → CSS/JavaScript
+
+
+⚠️ TROUBLESHOOTING
+═════════════════════════════════════════════════════════════════════════════════
+
+❌ Erro: "python not found"
+   ✓ Instale Python: https://www.python.org
+   ✓ Marque "Add Python to PATH"
+   ✓ Reinicie o terminal
+
+❌ Erro: "mysql not found"
+   ✓ Instale MySQL: https://dev.mysql.com/downloads/mysql/
+   ✓ Marque "Add MySQL to PATH"
+   ✓ Verifique se foi instalado em:
+     C:\Program Files\MySQL\MySQL Server 8.0\bin\
+
+❌ Erro: "Access denied" (MySQL)
+   ✓ Verifique a senha do root
+   ✓ Verifique arquivo .env
+   ✓ Teste: mysql -u estoque_user -p
+           (senha: 12345)
+
+❌ Erro: "Can't connect to MySQL"
+   ✓ MySQL não está rodando
+   ✓ Windows: Inicie o serviço MySQL (Serviços)
+   ✓ Linux: sudo service mysql start
+
+❌ Erro: "Port 5000 already in use"
+   ✓ Outra aplicação está usando a porta 5000
+   ✓ Altere em app.py: port=5000 → port=8000
+   ✓ OU: python app.py --port 8000
+
+
+✅ CHECKLIST DE CONCLUSÃO
+═════════════════════════════════════════════════════════════════════════════════
+
+☐ Python instalado e no PATH
+☐ MySQL instalado e no PATH
+☐ Setup completo executado (EXECUTAR_SETUP.bat)
+☐ Dependências instaladas (pip install -r requirements.txt)
+☐ Banco MySQL criado (estoque_db)
+☐ Usuário MySQL criado (estoque_user)
+☐ Arquivo .env configurado
+☐ Servidor Flask pronto (python app.py)
+☐ Pode acessar http://localhost:5000
+☐ Login funciona (admin/admin)
+
+
+🎉 PRONTO PARA USAR!
+═════════════════════════════════════════════════════════════════════════════════
+
+Se chegou aqui, tudo está funcionando!
+
+Próximos passos:
+1. Crie os produtos no sistema
+2. Faça movimentações de entrada/saída
+3. Visualize relatórios
+4. Gerencie usuários (aba Admin)
+
+
+💡 DICAS
+═════════════════════════════════════════════════════════════════════════════════
+
+• Para use remoto (múltiplas máquinas):
+  - Configure MySQL em uma máquina central
+  - Em .env, altere: localhost → IP-DO-SERVIDOR
+  - Todas as máquinas acessarão o mesmo banco
+
+• Para resetar administrador:
+  - Edite database.py: admin_user.password = generate_password_hash('nova_senha')
+  - OU delete a tabela users e deixe criar novo admin
+
+• Backup de dados:
+  - Faça backup regular do banco MySQL
+  - Ou exporte dados via interface
+
+
+═════════════════════════════════════════════════════════════════════════════════
+
+Dúvidas? Verifique os arquivos:
+  - SETUP_RAPIDO.md (em detalhes)
+  - README.md (funcionalidades)
+  
+═════════════════════════════════════════════════════════════════════════════════
