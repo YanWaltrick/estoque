@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
 from database import create_app, db, DATABASE_URL
 from estoque_db import EstoqueDB
-from models import Produto, Movimentacao, User
+from models import Produto, Movimentacao, User, Chamada, Historico
 import os
 
 # Criar aplicacao Flask
@@ -22,8 +22,11 @@ else:
     db_type = "Desconhecido"
 print(f"Banco de dados: {db_type}")
 if db_type == "SQLite":
-    print("Info: MySQL nao configurado. Usando SQLite local.")
-    print("      Para usar MySQL, configure DATABASE_URL em .env")
+    raise SystemExit(
+        "SQLite não é suportado neste modo.\n"
+        "Defina DATABASE_URL no .env para MySQL:\n"
+        "DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db"
+    )
 print("="*60 + "\n")
 
 # Configurar Flask-Login
@@ -38,6 +41,28 @@ def load_user(user_id):
 
 # Instância global do estoque (será inicializada depois)
 estoque = None
+
+# ============================================================================
+# FUNÇÃO AUXILIAR - REGISTRO DE HISTÓRICO
+# ============================================================================
+
+def registrar_evento(tipo_evento, descricao, usuario_responsavel=None, detalhes=None):
+    """Registra um evento no histórico do sistema"""
+    try:
+        if usuario_responsavel is None and current_user.is_authenticated:
+            usuario_responsavel = current_user.username
+        
+        evento = Historico(
+            tipo_evento=tipo_evento,
+            descricao=descricao,
+            usuario_responsavel=usuario_responsavel,
+            detalhes=detalhes
+        )
+        db.session.add(evento)
+        db.session.commit()
+    except Exception as e:
+        print(f"Erro ao registrar evento no histórico: {e}")
+
 # ============================================================================
 # ROTAS - AUTENTICAÇÃO
 # ============================================================================
@@ -72,11 +97,16 @@ def logout():
 @app.route('/admin')
 @login_required
 def admin():
-    """Página de administração de usuários (apenas para admins)"""
+    """Página de administração de usuários"""
     if not current_user.is_admin:
-        flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
-        return redirect(url_for('index'))
+        return redirect(url_for('chamadas'))
     return render_template('admin.html')
+
+@app.route('/chamadas')
+@login_required
+def chamadas_user():
+    """Página de chamadas para todos os usuários"""
+    return render_template('index.html')
 
 # ============================================================================
 # ROTAS - API DE USUÁRIOS
@@ -126,6 +156,11 @@ def criar_user():
     db.session.add(novo_user)
     db.session.commit()
     
+    registrar_evento(
+        tipo_evento='usuario_criado',
+        descricao=f'Usuário "{username}" criado com papel: {role}'
+    )
+    
     return jsonify({'mensagem': 'Usuário criado com sucesso'}), 201
 
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
@@ -143,8 +178,14 @@ def deletar_user(user_id):
     if user.id == current_user.id:
         return jsonify({'erro': 'Não é possível deletar o próprio usuário'}), 400
     
+    username_deletado = user.username
     db.session.delete(user)
     db.session.commit()
+    
+    registrar_evento(
+        tipo_evento='usuario_deletado',
+        descricao=f'Usuário "{username_deletado}" foi removido'
+    )
     
     return jsonify({'mensagem': 'Usuário removido com sucesso'})
 
@@ -174,11 +215,17 @@ def criar_chamada():
 @app.route('/api/chamadas', methods=['GET'])
 @login_required
 def get_chamadas():
-    """Retorna lista de chamadas (apenas para admins)"""
-    if not current_user.is_admin:
-        return jsonify({'erro': 'Acesso negado'}), 403
-    
-    chamadas = Chamada.query.order_by(Chamada.data_criacao.desc()).all()
+    """Retorna lista de chamadas."""
+    limit = request.args.get('limit', type=int)
+    if current_user.is_admin:
+        query = Chamada.query.order_by(Chamada.data_criacao.desc())
+    else:
+        query = Chamada.query.filter_by(id_usuario=current_user.id).order_by(Chamada.data_criacao.desc())
+
+    if limit and limit > 0:
+        query = query.limit(limit)
+
+    chamadas = query.all()
     resultado = [chamada.to_dict() for chamada in chamadas]
     
     return jsonify(resultado)
@@ -198,6 +245,57 @@ def marcar_chamada_lida(chamada_id):
     db.session.commit()
     
     return jsonify({'mensagem': 'Chamada marcada como lida'})
+
+@app.route('/api/chamadas/nao-lidas', methods=['GET'])
+@login_required
+def get_chamadas_nao_lidas():
+    """Retorna quantidade de chamadas não lidas."""
+    if current_user.is_admin:
+        nao_lidas = Chamada.query.filter_by(lida=False).count()
+    else:
+        nao_lidas = Chamada.query.filter_by(id_usuario=current_user.id, lida=False).count()
+    return jsonify({'nao_lidas': nao_lidas})
+
+# ============================================================================
+# ROTAS - HISTÓRICO/AUDITORIA
+# ============================================================================
+
+@app.route('/api/historico', methods=['GET'])
+@login_required
+def get_historico():
+    """Retorna histórico de eventos do sistema (apenas para admins)"""
+    if not current_user.is_admin:
+        return jsonify({'erro': 'Acesso negado'}), 403
+    
+    limit = request.args.get('limit', 50, type=int)
+    tipo_filtro = request.args.get('tipo')
+    
+    query = Historico.query.order_by(Historico.data_evento.desc())
+    
+    if tipo_filtro:
+        query = query.filter_by(tipo_evento=tipo_filtro)
+    
+    eventos = query.limit(limit).all()
+    resultado = [evento.to_dict() for evento in eventos]
+    
+    return jsonify(resultado)
+
+@app.route('/api/historico/tipos', methods=['GET'])
+@login_required
+def get_tipos_historico():
+    """Retorna lista de tipos de eventos disponíveis"""
+    if not current_user.is_admin:
+        return jsonify({'erro': 'Acesso negado'}), 403
+    
+    tipos = [
+        'usuario_criado',
+        'usuario_deletado',
+        'produto_criado',
+        'produto_deletado',
+        'entrada_estoque',
+        'saida_estoque'
+    ]
+    return jsonify({'tipos': tipos})
 
 # ============================================================================
 # ROTAS - PÁGINA PRINCIPAL
@@ -308,6 +406,10 @@ def criar_produto():
         )
 
         if sucesso:
+            registrar_evento(
+                tipo_evento='produto_criado',
+                descricao=f'Produto "{dados["nome"]}" (ID: {dados["id"]}) foi criado com sucesso'
+            )
             return jsonify({'mensagem': 'Produto criado com sucesso'}), 201
         else:
             return jsonify({'erro': 'Falha ao criar produto'}), 400
@@ -359,9 +461,16 @@ def atualizar_produto(id_produto):
 def deletar_produto(id_produto):
     """Delete um produto"""
     try:
+        produto = estoque.buscar_produto(id_produto)
+        nome_produto = produto.nome if produto else id_produto
+        
         sucesso = estoque.remover_produto(id_produto)
 
         if sucesso:
+            registrar_evento(
+                tipo_evento='produto_deletado',
+                descricao=f'Produto "{nome_produto}" (ID: {id_produto}) foi removido'
+            )
             return jsonify({'mensagem': 'Produto removido com sucesso'})
         else:
             return jsonify({'erro': 'Produto não encontrado'}), 404
@@ -388,6 +497,10 @@ def entrada_estoque():
         )
 
         if sucesso:
+            registrar_evento(
+                tipo_evento='entrada_estoque',
+                descricao=f'Entrada de {dados["quantidade"]} unidades do produto ID: {dados["id"]} - Motivo: {dados.get("motivo", "Não informado")}'
+            )
             return jsonify({'mensagem': 'Entrada registrada com sucesso'})
         else:
             return jsonify({'erro': 'Falha ao registrar entrada'}), 400
@@ -411,6 +524,10 @@ def saida_estoque():
         )
 
         if sucesso:
+            registrar_evento(
+                tipo_evento='saida_estoque',
+                descricao=f'Saída de {dados["quantidade"]} unidades do produto ID: {dados["id"]} - Motivo: {dados.get("motivo", "Não informado")}'
+            )
             return jsonify({'mensagem': 'Saída registrada com sucesso'})
         else:
             return jsonify({'erro': 'Falha ao registrar saída'}), 400

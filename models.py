@@ -133,3 +133,31 @@ class Chamada(db.Model):
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'lida': self.lida
         }
+
+
+class Historico(db.Model):
+    """Modelo para histórico de mudanças no sistema (auditoria)"""
+    __tablename__ = 'historico'
+
+    id_evento = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tipo_evento = db.Column(db.String(100), nullable=False)
+    descricao = db.Column(db.Text, nullable=False)
+    usuario_responsavel = db.Column(db.String(150))
+    data_evento = db.Column(db.DateTime, default=datetime.utcnow)
+    detalhes = db.Column(db.Text)
+
+    def __init__(self, tipo_evento, descricao, usuario_responsavel=None, detalhes=None):
+        self.tipo_evento = tipo_evento
+        self.descricao = descricao
+        self.usuario_responsavel = usuario_responsavel
+        self.detalhes = detalhes
+
+    def to_dict(self):
+        return {
+            'id': self.id_evento,
+            'tipo_evento': self.tipo_evento,
+            'descricao': self.descricao,
+            'usuario_responsavel': self.usuario_responsavel,
+            'data_evento': self.data_evento.strftime("%d/%m/%Y %H:%M:%S") if self.data_evento else None,
+            'detalhes': self.detalhes
+        }

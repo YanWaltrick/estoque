@@ -48,68 +48,127 @@
         </div>
 
         <div class="row">
-            <!-- Formulário para adicionar usuário -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-user-plus"></i> Adicionar Novo Usuário
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="form-adicionar-usuario">
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Nome de Usuário</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Senha</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="role" class="form-label">Tipo de Conta</label>
-                                <select class="form-select" id="role" name="role" required>
-                                    <option value="user">Usuário Normal</option>
-                                    <option value="admin">Administrador</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Adicionar Usuário
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+            <div class="col-12">
+                <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-usuarios-tab" data-bs-toggle="tab" data-bs-target="#tab-usuarios" type="button" role="tab" aria-controls="tab-usuarios" aria-selected="true">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-chamadas-tab" data-bs-toggle="tab" data-bs-target="#tab-chamadas" type="button" role="tab" aria-controls="tab-chamadas" aria-selected="false">
+                            <i class="fas fa-bell"></i> Chamadas <span class="badge bg-danger" id="badge-chamadas-nao-lidas">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-historico-tab" data-bs-toggle="tab" data-bs-target="#tab-historico" type="button" role="tab" aria-controls="tab-historico" aria-selected="false">
+                            <i class="fas fa-history"></i> Histórico
+                        </button>
+                    </li>
+                </ul>
 
-            <!-- Lista de usuários -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-users"></i> Usuários Cadastrados
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="lista-usuarios">
-                            <!-- Usuários serão carregados aqui -->
+                <div class="tab-content" id="adminTabsContent">
+                    <div class="tab-pane fade show active" id="tab-usuarios" role="tabpanel" aria-labelledby="tab-usuarios-tab">
+                        <div class="row">
+                            <!-- Formulário para adicionar usuário -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-user-plus"></i> Adicionar Novo Usuário
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="form-adicionar-usuario">
+                                            <div class="mb-3">
+                                                <label for="username" class="form-label">Nome de Usuário</label>
+                                                <input type="text" class="form-control" id="username" name="username" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="password" class="form-label">Senha</label>
+                                                <input type="password" class="form-control" id="password" name="password" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="role" class="form-label">Tipo de Conta</label>
+                                                <select class="form-select" id="role" name="role" required>
+                                                    <option value="user">Usuário Normal</option>
+                                                    <option value="admin">Administrador</option>
+                                                </select>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-plus"></i> Adicionar Usuário
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lista de usuários -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-users"></i> Usuários Cadastrados
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="lista-usuarios">
+                                            <!-- Usuários serão carregados aqui -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Chamadas dos usuários -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-bell"></i> Chamadas dos Usuários
-                        </h5>
+                    <div class="tab-pane fade" id="tab-chamadas" role="tabpanel" aria-labelledby="tab-chamadas-tab">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-bell"></i> Chamadas dos Usuários (Mais recentes)
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <input type="text" id="filtro-chamadas" class="form-control" placeholder="Pesquisar por usuário ou mensagem...">
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <small class="text-muted" id="texto-atualiza-chamadas">Atualiza a cada 30s</small>
+                                    </div>
+                                </div>
+                                <div id="lista-chamadas">
+                                    <!-- Chamadas serão carregadas aqui -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div id="lista-chamadas">
-                            <!-- Chamadas serão carregadas aqui -->
+
+                    <div class="tab-pane fade" id="tab-historico" role="tabpanel" aria-labelledby="tab-historico-tab">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-history"></i> Histórico de Mudanças no Sistema
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <select class="form-select" id="filtro-tipo-historico">
+                                            <option value="">Todos os tipos de evento</option>
+                                            <option value="usuario_criado">Usuário Criado</option>
+                                            <option value="usuario_deletado">Usuário Deletado</option>
+                                            <option value="produto_criado">Produto Criado</option>
+                                            <option value="produto_deletado">Produto Deletado</option>
+                                            <option value="entrada_estoque">Entrada de Estoque</option>
+                                            <option value="saida_estoque">Saída de Estoque</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="lista-historico">
+                                    <!-- Histórico será carregado aqui -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -274,21 +333,52 @@
             }
         });
 
-        // Carregar chamadas
+        let chamadasCache = [];
+
+        // Carregar badge de chamadas não lidas
+        async function atualizarBadgeNaoLidas() {
+            try {
+                const response = await fetch('/api/chamadas/nao-lidas');
+                if (!response.ok) {
+                    console.error('Falha ao obter contagem de chamadas não lidas');
+                    return;
+                }
+                const { nao_lidas } = await response.json();
+                const badge = document.getElementById('badge-chamadas-nao-lidas');
+                badge.textContent = nao_lidas;
+                badge.className = nao_lidas > 0 ? 'badge bg-danger' : 'badge bg-secondary';
+            } catch (error) {
+                console.error('Erro ao obter badge de chamadas:', error);
+            }
+        }
+
+        function aplicarFiltroChamadas(chamadas, texto) {
+            if (!texto) return chamadas;
+            const termo = texto.trim().toLowerCase();
+            return chamadas.filter(chamada => {
+                return chamada.usuario.toLowerCase().includes(termo) || chamada.mensagem.toLowerCase().includes(termo);
+            });
+        }
+
+        // Carregar chamadas (mais recentes)
         async function carregarChamadas() {
             try {
-                const response = await fetch('/api/chamadas');
-                const chamadas = await response.json();
+                const response = await fetch('/api/chamadas?limit=20');
+                chamadasCache = await response.json();
+
+                const filtro = document.getElementById('filtro-chamadas').value;
+                const chamadasFiltradas = aplicarFiltroChamadas(chamadasCache, filtro);
 
                 const lista = document.getElementById('lista-chamadas');
                 lista.innerHTML = '';
 
-                if (chamadas.length === 0) {
-                    lista.innerHTML = '<p class="text-muted">Nenhuma chamada pendente.</p>';
+                if (chamadasFiltradas.length === 0) {
+                    lista.innerHTML = '<p class="text-muted">Nenhuma chamada encontrada.</p>';
+                    atualizarBadgeNaoLidas();
                     return;
                 }
 
-                chamadas.forEach(chamada => {
+                chamadasFiltradas.forEach(chamada => {
                     const chamadaDiv = document.createElement('div');
                     chamadaDiv.className = `border rounded p-3 mb-3 ${chamada.lida ? 'bg-light' : 'bg-warning-subtle'}`;
                     
@@ -330,6 +420,8 @@
                     
                     lista.appendChild(chamadaDiv);
                 });
+
+                atualizarBadgeNaoLidas();
             } catch (error) {
                 console.error('Erro:', error);
                 document.getElementById('lista-chamadas').innerHTML = '<p class="text-danger">Erro ao carregar chamadas.</p>';
@@ -354,10 +446,121 @@
             }
         }
 
+        // Atualizar badge e chamadas periodicamente
+        let timerAtualizacao = null;
+        function iniciarAutoRefresh() {
+            if (timerAtualizacao) clearInterval(timerAtualizacao);
+            timerAtualizacao = setInterval(async () => {
+                const tabChamadas = document.getElementById('tab-chamadas-tab');
+                if (tabChamadas && tabChamadas.classList.contains('active')) {
+                    await carregarChamadas();
+                } else {
+                    await atualizarBadgeNaoLidas();
+                }
+            }, 30000);
+        }
+
+        // Carregar histórico de eventos
+        async function carregarHistorico() {
+            try {
+                const tipo = document.getElementById('filtro-tipo-historico').value;
+                const url = tipo ? `/api/historico?tipo=${tipo}&limit=100` : '/api/historico?limit=100';
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('Erro ao obter histórico');
+                    return;
+                }
+                
+                const eventos = await response.json();
+                const lista = document.getElementById('lista-historico');
+                lista.innerHTML = '';
+
+                if (eventos.length === 0) {
+                    lista.innerHTML = '<p class="text-muted">Nenhum evento no histórico.</p>';
+                    return;
+                }
+
+                const tiposInternet = {
+                    'usuario_criado': '<span class="badge bg-success"><i class="fas fa-plus"></i> Usuário Criado</span>',
+                    'usuario_deletado': '<span class="badge bg-danger"><i class="fas fa-trash"></i> Usuário Deletado</span>',
+                    'produto_criado': '<span class="badge bg-success"><i class="fas fa-plus"></i> Produto Criado</span>',
+                    'produto_deletado': '<span class="badge bg-danger"><i class="fas fa-trash"></i> Produto Deletado</span>',
+                    'entrada_estoque': '<span class="badge bg-info"><i class="fas fa-arrow-down"></i> Entrada de Estoque</span>',
+                    'saida_estoque': '<span class="badge bg-warning"><i class="fas fa-arrow-up"></i> Saída de Estoque</span>'
+                };
+
+                eventos.forEach(evento => {
+                    const eventoDiv = document.createElement('div');
+                    eventoDiv.className = 'border rounded p-3 mb-3 bg-light';
+                    
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'd-flex justify-content-between align-items-start mb-2';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `
+                        ${tiposInternet[evento.tipo_evento] || '<span class="badge bg-secondary">' + evento.tipo_evento + '</span>'}
+                        <br>
+                        <small class="text-muted d-block">${evento.data_evento}</small>
+                        <small class="text-muted d-block">Por: <strong>${evento.usuario_responsavel || 'Sistema'}</strong></small>
+                    `;
+                    
+                    const descDiv = document.createElement('div');
+                    descDiv.className = 'mb-2';
+                    descDiv.innerHTML = `<p class="mb-0">${escapeHtml(evento.descricao)}</p>`;
+                    
+                    headerDiv.appendChild(infoDiv);
+                    eventoDiv.appendChild(headerDiv);
+                    eventoDiv.appendChild(descDiv);
+                    
+                    lista.appendChild(eventoDiv);
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('lista-historico').innerHTML = '<p class="text-danger">Erro ao carregar histórico.</p>';
+            }
+        }
+
         // Carregar usuários ao carregar a página
         document.addEventListener('DOMContentLoaded', () => {
             carregarUsuarios();
             carregarChamadas();
+            carregarHistorico();
+            iniciarAutoRefresh();
+
+            const tabChamadas = document.getElementById('tab-chamadas-tab');
+            if (tabChamadas) {
+                tabChamadas.addEventListener('shown.bs.tab', () => {
+                    carregarChamadas();
+                });
+            }
+
+            const filtroInput = document.getElementById('filtro-chamadas');
+            if (filtroInput) {
+                filtroInput.addEventListener('input', () => {
+                    const chamadasFiltradas = aplicarFiltroChamadas(chamadasCache, filtroInput.value);
+                    const lista = document.getElementById('lista-chamadas');
+                    if (chamadasFiltradas.length === 0) {
+                        lista.innerHTML = '<p class="text-muted">Nenhuma chamada encontrada.</p>';
+                        return;
+                    }
+                    carregarChamadas();
+                });
+            }
+
+            const tabHistorico = document.getElementById('tab-historico-tab');
+            if (tabHistorico) {
+                tabHistorico.addEventListener('shown.bs.tab', () => {
+                    carregarHistorico();
+                });
+            }
+
+            const filtroTipo = document.getElementById('filtro-tipo-historico');
+            if (filtroTipo) {
+                filtroTipo.addEventListener('change', () => {
+                    carregarHistorico();
+                });
+            }
         });
     </script>
 </body>

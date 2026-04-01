@@ -9,18 +9,29 @@ load_dotenv()
 # Configuracao do banco de dados
 # Suporta MySQL (mysql+pymysql), SQLite local e URL customizada
 def get_database_url():
-    """Obtem URL do banco com fallback para SQLite"""
+    """Obtem URL do banco.
+
+    MySQL é obrigatório neste modo. Se DATABASE_URL não estiver definida,
+    a aplicação sai com mensagem de orientação.
+    """
     db_url = os.getenv('DATABASE_URL')
 
-    if db_url:
-        if db_url.startswith('mysql') or db_url.startswith('mysql+pymysql') or db_url.startswith('sqlite'):
-            return db_url
-        # Se usar URL de outro driver, tenta passar adiante
-        return db_url
+    if not db_url:
+        raise RuntimeError(
+            "NENHUM DATABASE_URL configurado.\n"
+            "Defina no .env (ou variável de ambiente) a URL MySQL, ex:\n"
+            "DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db"
+        )
 
-    # Fallback para SQLite local
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    return f'sqlite:///{os.path.join(basedir, "estoque.db")}'
+    if db_url.startswith('sqlite'):
+        raise RuntimeError(
+            "SQLite não está habilitado.\n"
+            "Altere DATABASE_URL para MySQL no .env:\n"
+            "DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db"
+        )
+
+    # Aceita MySQL ou outros drivers explícitos se o usuário quiser.
+    return db_url
 
 DATABASE_URL = get_database_url()
 

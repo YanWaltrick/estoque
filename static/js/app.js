@@ -16,6 +16,14 @@ const API_BASE = window.location.origin + '/api';
 document.addEventListener('DOMContentLoaded', function () {
     carregarDados();
     configurarEventos();
+
+    // Exibição inicial conforme permissão de usuário
+    if (window.USUARIO_IS_ADMIN === 'true' || window.USUARIO_IS_ADMIN === true) {
+        showSection('dashboard');
+    } else {
+        showSection('chamadas');
+    }
+
     // Recarregar dados a cada 1 minuto e 30 segundos
     setInterval(carregarDados, 90000);
 });
@@ -61,30 +69,39 @@ function showSection(section) {
 // =============================================================================
 
 function carregarDados() {
-    Promise.all([
-        fetch(`${API_BASE}/produtos`).then(r => r.json()),
-        fetch(`${API_BASE}/relatorios/resumo`).then(r => r.json())
-    ])
-    .then(([produtos, resumo]) => {
-        productsData = produtos;
-        atualizarKPIs(resumo);
-        atualizarEstoqueBaixo();
+    if (window.USUARIO_IS_ADMIN === 'true' || window.USUARIO_IS_ADMIN === true) {
+        Promise.all([
+            fetch(`${API_BASE}/produtos`).then(r => r.json()),
+            fetch(`${API_BASE}/relatorios/resumo`).then(r => r.json())
+        ])
+        .then(([produtos, resumo]) => {
+            productsData = produtos;
+            atualizarKPIs(resumo);
+            atualizarEstoqueBaixo();
 
-        // Atualiza a tabela e gráficos conforme seção ativa (auto-refresh)
-        if (document.getElementById('produtos-section').style.display !== 'none') {
-            atualizarTabelaProdutos();
-        }
-        if (document.getElementById('dashboard-section').style.display !== 'none') {
-            atualizarDashboard();
-        }
-        if (document.getElementById('relatorios-section').style.display !== 'none') {
-            atualizarRelatorios();
-        }
-    })
-    .catch(error => mostrarErro('Erro ao carregar dados', error));
+            // Atualiza a tabela e gráficos conforme seção ativa (auto-refresh)
+            if (document.getElementById('produtos-section') && document.getElementById('produtos-section').style.display !== 'none') {
+                atualizarTabelaProdutos();
+            }
+            if (document.getElementById('dashboard-section') && document.getElementById('dashboard-section').style.display !== 'none') {
+                atualizarDashboard();
+            }
+            if (document.getElementById('relatorios-section') && document.getElementById('relatorios-section').style.display !== 'none') {
+                atualizarRelatorios();
+            }
+        })
+        .catch(error => mostrarErro('Erro ao carregar dados', error));
+    } else {
+        atualizarEstoqueBaixo();
+        // Se quiser buscar chamadas do usuário (a partir de rota /api/chamadas), fazer aqui
+        // carregarChamadasUsuario();
+    }
 }
 
 function atualizarKPIs(resumo) {
+    const totalProdutosEl = document.getElementById('kpi-total-produtos');
+    if (!totalProdutosEl) return;
+
     document.getElementById('kpi-total-produtos').textContent = resumo.total_produtos;
     document.getElementById('kpi-quantidade').textContent = resumo.total_quantidades;
     document.getElementById('kpi-valor').textContent = 'R$ ' + formatarMoeda(resumo.valor_total);
@@ -92,10 +109,12 @@ function atualizarKPIs(resumo) {
 }
 
 function atualizarEstoqueBaixo() {
+    const tbody = document.getElementById('estoque-baixo-table');
+    if (!tbody) return;
+
     fetch(`${API_BASE}/relatorios/estoque-baixo`)
         .then(r => r.json())
         .then(datos => {
-            const tbody = document.getElementById('estoque-baixo-table');
             
             if (datos.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center text-success">✓ Todos os produtos estão acima do estoque mínimo!</td></tr>';
@@ -429,7 +448,9 @@ function atualizarRelatorioTopProdutos() {
 
 function configurarEventos() {
     // Buscar produtos
-    document.getElementById('searchProduto').addEventListener('keyup', function (e) {
+    const searchProdutoInput = document.getElementById('searchProduto');
+    if (searchProdutoInput) {
+        searchProdutoInput.addEventListener('keyup', function (e) {
         const termo = e.target.value.toLowerCase();
         const tbody = document.getElementById('produtos-table');
         
@@ -476,14 +497,19 @@ function configurarEventos() {
     });
     
     // Modal novo produto
-    document.getElementById('modalProduto').addEventListener('show.bs.modal', function () {
-        if (!currentProdutoId) {
-            novoFormulario();
-        }
-    });
+    const modalProduto = document.getElementById('modalProduto');
+    if (modalProduto) {
+        modalProduto.addEventListener('show.bs.modal', function () {
+            if (!currentProdutoId) {
+                novoFormulario();
+            }
+        });
+    }
 
     // Formulário de chamadas
-    document.getElementById('formChamada').addEventListener('submit', function (e) {
+    const formChamada = document.getElementById('formChamada');
+    if (formChamada) {
+        formChamada.addEventListener('submit', function (e) {
         e.preventDefault();
         enviarChamada();
     });
@@ -559,7 +585,9 @@ function enviarChamada() {
     .then(data => {
         if (data.mensagem) {
             mostrarAlerta('Chamada enviada com sucesso! Os administradores foram notificados.', 'success');
-            document.getElementById('formChamada').reset();
+            if (formChamada) {
+            formChamada.reset();
+        }
         } else {
             mostrarAlerta('Erro ao enviar chamada: ' + (data.erro || 'Erro desconhecido'), 'danger');
         }
@@ -571,5 +599,9 @@ function enviarChamada() {
 
 // Autenticar e carregar dados iniciais
 window.addEventListener('load', function () {
-    showSection('dashboard');
+    if (window.USUARIO_IS_ADMIN === 'true' || window.USUARIO_IS_ADMIN === true) {
+        showSection('dashboard');
+    } else {
+        showSection('chamadas');
+    }
 });

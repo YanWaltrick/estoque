@@ -24,34 +24,31 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="showSection('dashboard')">
                             <i class="fas fa-chart-line"></i> Dashboard
                         </a>
                     </li>
-                    {% if current_user.is_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="showSection('produtos')">
                             <i class="fas fa-cube"></i> Produtos
                         </a>
                     </li>
-                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="showSection('relatorios')">
                             <i class="fas fa-file-pdf"></i> Relatórios
                         </a>
                     </li>
-                    {% if not current_user.is_admin %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('chamadas')">
-                            <i class="fas fa-bell"></i> Chamadas
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% if current_user.is_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin') }}">
                             <i class="fas fa-shield-alt"></i> Admin
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('chamadas')">
+                            <i class="fas fa-bell"></i> Chamadas
                         </a>
                     </li>
                     {% endif %}
@@ -68,6 +65,7 @@
     <div class="container-fluid py-4">
         <div class="row">
             <div class="col-lg-12">
+            {% if current_user.is_admin %}
             <div id="dashboard-section" class="section">
                 <div class="row mb-4">
                     <div class="col-md-3 col-sm-6 mb-3">
@@ -188,7 +186,7 @@
         </div>
     </div>
 
-        <div id="produtos-section" class="section" style="display: none;">
+            <div id="produtos-section" class="section" style="display: none;">
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center">
@@ -318,6 +316,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <div id="chamadas-section" class="section" style="display: none;">
             <div class="row mb-4">
@@ -345,6 +344,8 @@
                 </div>
             </div>
         </div>
+    </div>
+    </div>
     </div>
 
     <div class="modal fade" id="modalProduto" tabindex="-1">
@@ -426,7 +427,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+    <script>
+        window.USUARIO_IS_ADMIN = {{ 'true' if current_user.is_admin else 'false' }};
+    </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
