@@ -1,7 +1,11 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
+
+
+def now_gmt3():
+    return datetime.now(timezone(timedelta(hours=-3)))
 
 class Produto:
     """Classe para representar um produto do estoque"""
@@ -15,7 +19,7 @@ class Produto:
         self.quantidade = quantidade
         self.minimo = minimo
         self.localizacao = localizacao
-        self.data_criacao = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        self.data_criacao = now_gmt3().strftime("%d/%m/%Y %H:%M:%S")
     
     def to_dict(self) -> dict:
         """Converte o produto para dicionário"""

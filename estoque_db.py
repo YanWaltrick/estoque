@@ -1,7 +1,11 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
+
+
+def now_gmt3():
+    return datetime.now(timezone(timedelta(hours=-3)))
 from database import db
 from models import Produto, Movimentacao, Categoria
 
@@ -207,7 +211,7 @@ class EstoqueDB:
             if 'localizacao' in dados:
                 produto.localizacao = str(dados['localizacao'])
 
-            produto.data_atualizacao = datetime.utcnow()
+            produto.data_atualizacao = now_gmt3()
             db.session.commit()
             print(f"✓ Produto '{id_produto}' atualizado com sucesso!")
             return True

@@ -29,6 +29,15 @@ if db_type == "SQLite":
     )
 print("="*60 + "\n")
 
+# Garantir que a coluna de status exista (compatibilidade com banco já em uso)
+with app.app_context():
+    try:
+        db.session.execute(text("ALTER TABLE chamadas ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'nova'"))
+        db.session.commit()
+    except Exception:
+        # Coluna provavelmente já existe, continuar normalmente
+        db.session.rollback()
+
 # Configurar Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -242,9 +251,63 @@ def marcar_chamada_lida(chamada_id):
         return jsonify({'erro': 'Chamada não encontrada'}), 404
     
     chamada.lida = True
+    chamada.status = 'lida'
     db.session.commit()
+
+    registrar_evento(
+        tipo_evento='chamada_status',
+        descricao=f'Chamada {chamada.id_chamada} marcada como Lida',
+        usuario_responsavel=current_user.username,
+        detalhes='status=lida'
+    )
     
     return jsonify({'mensagem': 'Chamada marcada como lida'})
+
+@app.route('/api/chamadas/<int:chamada_id>/status', methods=['PUT'])
+@login_required
+def atualizar_status_chamada(chamada_id):
+    """Atualiza o status de uma chamada (apenas para admins)"""
+    if not current_user.is_admin:
+        return jsonify({'erro': 'Acesso negado'}), 403
+
+    chamada = Chamada.query.get(chamada_id)
+    if not chamada:
+        return jsonify({'erro': 'Chamada não encontrada'}), 404
+
+    dados = request.get_json() or {}
+    novo_status = dados.get('status', '').strip().lower()
+
+    estagios_validos = ['nova', 'lida', 'analise', 'execucao', 'concluida']
+    if novo_status not in estagios_validos:
+        return jsonify({'erro': 'Status inválido'}), 400
+
+    # Validação de transições permitidas
+    transicoes = {
+        'nova': ['lida'],
+        'lida': ['analise'],
+        'analise': ['execucao'],
+        'execucao': ['concluida'],
+        'concluida': []
+    }
+
+    if novo_status == chamada.status:
+        return jsonify({'mensagem': 'Status já está definido'}), 200
+
+    if novo_status not in transicoes.get(chamada.status, []):
+        return jsonify({'erro': f'Transição de status não permitida: {chamada.status} -> {novo_status}'}), 400
+
+    chamada.status = novo_status
+    chamada.lida = novo_status != 'nova'
+    db.session.commit()
+
+    registrar_evento(
+        tipo_evento='chamada_status',
+        descricao=f'Chamada {chamada.id_chamada} atualizada para {novo_status}',
+        usuario_responsavel=current_user.username,
+        detalhes=f'status={novo_status}'
+    )
+
+    return jsonify({'mensagem': f'Status atualizado para {novo_status}'})
 
 @app.route('/api/chamadas/nao-lidas', methods=['GET'])
 @login_required

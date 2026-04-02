@@ -360,6 +360,27 @@
             });
         }
 
+        // Atualizar status da chamada (admin)
+        async function trocarStatus(chamadaId, status) {
+            try {
+                const response = await fetch(`/api/chamadas/${chamadaId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    carregarChamadas();
+                } else {
+                    const err = await response.json();
+                    alert('Erro: ' + (err.erro || 'Falha ao atualizar status'));
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar status:', error);
+                alert('Erro ao atualizar status');
+            }
+        }
+
         // Carregar chamadas (mais recentes)
         async function carregarChamadas() {
             try {
@@ -392,11 +413,15 @@
                     `;
                     
                     const statusDiv = document.createElement('div');
-                    if (!chamada.lida) {
-                        statusDiv.innerHTML = '<span class="badge bg-warning">Nova</span>';
-                    } else {
-                        statusDiv.innerHTML = '<span class="badge bg-secondary">Lida</span>';
-                    }
+                    const statusMap = {
+                        'nova': {label: 'Nova', class: 'bg-warning'},
+                        'lida': {label: 'Lida', class: 'bg-secondary'},
+                        'analise': {label: 'Em Análise', class: 'bg-info text-dark'},
+                        'execucao': {label: 'Em Execução', class: 'bg-primary'},
+                        'concluida': {label: 'Concluída', class: 'bg-success'}
+                    };
+                    const statusInfo = statusMap[chamada.status] || statusMap['nova'];
+                    statusDiv.innerHTML = `<span class="badge ${statusInfo.class}">${statusInfo.label}</span>`;
                     
                     headerDiv.appendChild(infoDiv);
                     headerDiv.appendChild(statusDiv);
@@ -406,12 +431,29 @@
                     mensagemDiv.textContent = chamada.mensagem;
                     
                     const acoesDiv = document.createElement('div');
-                    if (!chamada.lida) {
-                        acoesDiv.innerHTML = `
-                            <button class="btn btn-sm btn-success" onclick="marcarComoLida(${chamada.id})">
-                                <i class="fas fa-check"></i> Marcar como Lida
-                            </button>
-                        `;
+                    const btnAcao = (label, classe, status) =>
+                        `<button class="btn btn-sm ${classe} me-1" onclick="trocarStatus(${chamada.id}, '${status}')">` +
+                            `<i class="fas fa-sync-alt"></i> ${label}` +
+                        `</button>`;
+
+                    switch (chamada.status) {
+                        case 'nova':
+                            acoesDiv.innerHTML = btnAcao('Marcar como Lida', 'btn-success', 'lida');
+                            break;
+                        case 'lida':
+                            acoesDiv.innerHTML = btnAcao('Colocar em Análise', 'btn-info', 'analise');
+                            break;
+                        case 'analise':
+                            acoesDiv.innerHTML = btnAcao('Colocar em Execução', 'btn-primary', 'execucao');
+                            break;
+                        case 'execucao':
+                            acoesDiv.innerHTML = btnAcao('Marcar como Concluída', 'btn-success', 'concluida');
+                            break;
+                        case 'concluida':
+                            acoesDiv.innerHTML = '<small class="text-success">Finalizada</small>';
+                            break;
+                        default:
+                            acoesDiv.innerHTML = '';
                     }
                     
                     chamadaDiv.appendChild(headerDiv);

@@ -1,6 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from database import db
 from flask_login import UserMixin
+
+
+def now_gmt3():
+    """Retorna datetime com fuso-horário GMT-3."""
+    return datetime.now(timezone(timedelta(hours=-3)))
+
 
 class User(db.Model, UserMixin):
     """Modelo para usuários do sistema"""
@@ -10,7 +16,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
     role = db.Column(db.String(50), nullable=False, default='user')  # 'user' ou 'admin'
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_criacao = db.Column(db.DateTime, default=now_gmt3)
 
     def __init__(self, username, password, role='user'):
         self.username = username
@@ -33,8 +39,8 @@ class Produto(db.Model):
     quantidade = db.Column(db.Integer, nullable=False, default=0)
     minimo = db.Column(db.Integer, nullable=False, default=0)
     localizacao = db.Column(db.String(255))
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    data_criacao = db.Column(db.DateTime, default=now_gmt3)
+    data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
 
     # Relacionamento com movimentações
     movimentacoes = db.relationship('Movimentacao', backref='produto', lazy=True, cascade='all, delete-orphan')
@@ -82,7 +88,7 @@ class Movimentacao(db.Model):
     tipo = db.Column(db.String(20), nullable=False)  # 'ENTRADA' ou 'SAIDA'
     quantidade = db.Column(db.Integer, nullable=False)
     motivo = db.Column(db.String(255))
-    data_movimentacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_movimentacao = db.Column(db.DateTime, default=now_gmt3)
     usuario = db.Column(db.String(100))
 
     def __init__(self, id_produto, tipo, quantidade, motivo="", usuario=""):
@@ -114,8 +120,9 @@ class Chamada(db.Model):
     id_chamada = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_criacao = db.Column(db.DateTime, default=now_gmt3)
     lida = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(50), default='nova', nullable=False)
 
     # Relacionamento com usuário
     usuario = db.relationship('User', backref='chamadas')
@@ -123,6 +130,8 @@ class Chamada(db.Model):
     def __init__(self, id_usuario, mensagem):
         self.id_usuario = id_usuario
         self.mensagem = mensagem
+        self.status = 'nova'
+        self.lida = False
 
     def to_dict(self):
         return {
@@ -131,7 +140,8 @@ class Chamada(db.Model):
             'usuario': self.usuario.username if self.usuario else 'Desconhecido',
             'mensagem': self.mensagem,
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
-            'lida': self.lida
+            'lida': self.lida,
+            'status': self.status
         }
 
 
@@ -143,7 +153,7 @@ class Historico(db.Model):
     tipo_evento = db.Column(db.String(100), nullable=False)
     descricao = db.Column(db.Text, nullable=False)
     usuario_responsavel = db.Column(db.String(150))
-    data_evento = db.Column(db.DateTime, default=datetime.utcnow)
+    data_evento = db.Column(db.DateTime, default=now_gmt3)
     detalhes = db.Column(db.Text)
 
     def __init__(self, tipo_evento, descricao, usuario_responsavel=None, detalhes=None):

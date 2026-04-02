@@ -7,6 +7,9 @@ let currentProdutoId = null;
 let categoriasChart = null;
 let topProdutosChart = null;
 
+let chamadasUsuarioStatus = {};
+let chamadasUsuarioPrimeiroLoad = true;
+
 const API_BASE = window.location.origin + '/api';
 
 // =============================================================================
@@ -26,6 +29,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Recarregar dados a cada 1 minuto e 30 segundos
     setInterval(carregarDados, 90000);
+
+    // Para usuários, atualizar chamadas frequentemente (quase em tempo real)
+    if (window.USUARIO_IS_ADMIN !== 'true' && window.USUARIO_IS_ADMIN !== true) {
+        setInterval(carregarChamadasUsuario, 10000);
+    }
 });
 
 // =============================================================================
@@ -60,7 +68,7 @@ function showSection(section) {
     } else if (section === 'relatorios') {
         atualizarRelatorios();
     } else if (section === 'chamadas') {
-        // Nenhuma ação específica necessária para chamadas
+        carregarChamadasUsuario();
     }
 }
 
@@ -93,8 +101,7 @@ function carregarDados() {
         .catch(error => mostrarErro('Erro ao carregar dados', error));
     } else {
         atualizarEstoqueBaixo();
-        // Se quiser buscar chamadas do usuário (a partir de rota /api/chamadas), fazer aqui
-        // carregarChamadasUsuario();
+        carregarChamadasUsuario();
     }
 }
 
@@ -138,6 +145,64 @@ function atualizarEstoqueBaixo() {
             `).join('');
         })
         .catch(error => console.error('Erro ao carregar estoque baixo:', error));
+}
+
+async function carregarChamadasUsuario() {
+    const container = document.getElementById('lista-chamadas-usuario');
+    if (!container) return;
+
+    container.innerHTML = '<p class="text-muted">Carregando chamadas...</p>';
+
+    try {
+        const response = await fetch(`${API_BASE}/chamadas`);
+        if (!response.ok) {
+            throw new Error('Falha ao buscar chamadas');
+        }
+
+        const chamadas = await response.json();
+
+        if (!Array.isArray(chamadas) || chamadas.length === 0) {
+            container.innerHTML = '<p class="text-muted">Nenhuma chamada enviada ainda.</p>';
+            chamadasUsuarioPrimeiroLoad = false;
+            return;
+        }
+
+        const rows = chamadas.map(chamada => {
+            const statusLabelMap = {
+                'nova': 'Nova',
+                'lida': 'Lida',
+                'analise': 'Em Análise',
+                'execucao': 'Em Execução',
+                'concluida': 'Concluída'
+            };
+            const statusLabel = statusLabelMap[chamada.status] || 'Desconhecido';
+            
+            if (!chamadasUsuarioPrimeiroLoad) {
+                const anterior = chamadasUsuarioStatus[chamada.id];
+                if (anterior && anterior !== chamada.status) {
+                    mostrarAlerta(`Atualização: a chamada "${escapeHtml(chamada.mensagem.substring(0, 40))}" foi alterada de ${statusLabelMap[anterior] || anterior} para ${statusLabel}.`, 'info');
+                }
+            }
+
+            chamadasUsuarioStatus[chamada.id] = chamada.status;
+            
+            return `
+                <div class="border rounded p-3 mb-3 ${chamada.status === 'concluida' ? 'bg-success-subtle' : chamada.lida ? 'bg-light' : 'bg-warning-subtle'}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>${escapeHtml(chamada.data_criacao)}</strong>
+                        <span class="badge ${chamada.status === 'concluida' ? 'bg-success' : chamada.lida ? 'bg-secondary' : 'bg-danger'}">${statusLabel}</span>
+                    </div>
+                    <p class="mb-0">${escapeHtml(chamada.mensagem)}</p>
+                </div>
+            `;
+        }).join('');
+        chamadasUsuarioPrimeiroLoad = false;
+
+        container.innerHTML = rows;
+    } catch (error) {
+        console.error('Erro ao carregar chamadas de usuário:', error);
+        container.innerHTML = '<p class="text-danger">Erro ao carregar chamadas.</p>';
+    }
 }
 
 // =============================================================================
@@ -495,6 +560,7 @@ function configurarEventos() {
             </tr>
         `).join('');
     });
+    }
     
     // Modal novo produto
     const modalProduto = document.getElementById('modalProduto');
@@ -510,9 +576,10 @@ function configurarEventos() {
     const formChamada = document.getElementById('formChamada');
     if (formChamada) {
         formChamada.addEventListener('submit', function (e) {
-        e.preventDefault();
-        enviarChamada();
-    });
+            e.preventDefault();
+            enviarChamada();
+        });
+    }
 }
 
 function gerarCores(quantidade) {
@@ -585,9 +652,11 @@ function enviarChamada() {
     .then(data => {
         if (data.mensagem) {
             mostrarAlerta('Chamada enviada com sucesso! Os administradores foram notificados.', 'success');
-            if (formChamada) {
-            formChamada.reset();
-        }
+            const form = document.getElementById('formChamada');
+            if (form) {
+                form.reset();
+            }
+            carregarChamadasUsuario();
         } else {
             mostrarAlerta('Erro ao enviar chamada: ' + (data.erro || 'Erro desconhecido'), 'danger');
         }
